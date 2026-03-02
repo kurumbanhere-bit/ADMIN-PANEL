@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - KL ESPORTS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #000000;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            padding-bottom: 50px;
+            display: none; 
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 2px solid #ff4d00;
+            margin-bottom: 30px;
+        }
+
+        .header h1 { 
+            color: #ff4d00; 
+            margin: 0; 
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 24px;
+        }
+
+        .admin-card {
+            background: #111111;
+            margin-bottom: 12px;
+            padding: 22px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: 0.3s ease;
+            border: 1px solid #222;
+            border-left: 6px solid #ff4d00;
+        }
+
+        .admin-card.notifier { border-left: 6px solid #00d4ff; }
+        .admin-card.notifier i, .admin-card.notifier .arrow i { color: #00d4ff; }
+
+        /* Hoster Checker special styling */
+        .admin-card.hoster { border-left: 6px solid #0fa958; margin-top: 20px; }
+        .admin-card.hoster i, .admin-card.hoster .arrow i { color: #0fa958; }
+
+        .admin-card:hover {
+            background: #1a1a1a;
+            transform: translateX(8px);
+            box-shadow: 0 5px 15px rgba(255, 77, 0, 0.15);
+        }
+
+        .info { display: flex; align-items: center; }
+        .info i { font-size: 24px; margin-right: 18px; color: #ff4d00; width: 30px; text-align: center; }
+        .info h3 { margin: 0; font-size: 16px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .arrow { font-size: 18px; color: #ff4d00; opacity: 0.4; }
+
+        .logout-btn {
+            background: #ff4d00;
+            color: black;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            float: right;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .top-bar { overflow: hidden; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <button class="logout-btn" onclick="logout()">Logout</button>
+</div>
+
+<div class="header">
+    <h1><i class="fa-solid fa-crown"></i> Admin Console</h1>
+    <p style="color: #666; font-size: 11px; margin-top: 8px; letter-spacing: 1px;">KERALA ESPORTS OFFICIAL MANAGEMENT</p>
+</div>
+
+<div class="admin-card" onclick="goTo('add-match.html')">
+    <div class="info"><i class="fa-solid fa-square-plus"></i><h3>Add New Match</h3></div>
+    <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+</div>
+
+<div class="admin-card" onclick="goTo('add-missions.html')">
+    <div class="info"><i class="fa-solid fa-clipboard-list"></i><h3>Add Daily Missions</h3></div>
+    <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+</div>
+
+<div class="admin-card" onclick="goTo('send-winnings.html')">
+    <div class="info"><i class="fa-solid fa-trophy"></i><h3>Winnings Sender</h3></div>
+    <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+</div>
+
+<div class="admin-card" onclick="goTo('users-checker.html')">
+    <div class="info"><i class="fa-solid fa-users-viewfinder"></i><h3>Users Checker</h3></div>
+    <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+</div>
+
+<div class="admin-card" onclick="goTo('banned-players.html')">
+    <div class="info"><i class="fa-solid fa-user-slash"></i><h3>Banned Players</h3></div>
+    <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+</div>
+
+<div class="admin-card" onclick="goTo('match-sender.html')">
+    <div class="info"><i class="fa-solid fa-paper-plane"></i><h3>Match Sender (Room ID)</h3></div>
+    <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+</div>
+
+<div class="admin-card notifier" onclick="goTo('notification-sender.html')">
+    <div class="info"><i class="fa-solid fa-bullhorn"></i><h3>Notification Sender</h3></div>
+    <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+</div>
+
+<div class="admin-card" onclick="goTo('money-approval.html')">
+    <div class="info"><i class="fa-solid fa-hand-holding-dollar"></i><h3>Money Approval</h3></div>
+    <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+</div>
+
+<div class="admin-card hoster" onclick="goTo('host.html')">
+    <div class="info">
+        <i class="fa-solid fa-user-check"></i>
+        <h3>Hoster's Checker</h3>
+    </div>
+    <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+        authDomain: "kl-esports.firebaseapp.com",
+        databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+        projectId: "kl-esports",
+        storageBucket: "kl-esports.appspot.com",
+        messagingSenderId: "440301376580",
+        appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    firebase.auth().onAuthStateChanged(user => {
+        if (user && user.email === "kurumbanhere@gmail.com") {
+            document.body.style.display = "block";
+        } else {
+            window.location.href = "index.html";
+        }
+    });
+
+    function goTo(page) {
+        window.location.href = page;
+    }
+
+    function logout() {
+        if(confirm("Logout cheyyano Boss?")) {
+            firebase.auth().signOut().then(() => {
+                window.location.href = "index.html";
+            });
+        }
+    }
+</script>
+
+</body>
+</html>

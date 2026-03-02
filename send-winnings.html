@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Winners Management - KL ESPORTS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        :root { --p-orange: #ff4d00; --bg: #000; --card: #111; --green: #00ff88; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; padding: 10px; }
+        
+        /* Category Navigation */
+        .cat-nav { display: flex; gap: 10px; overflow-x: auto; padding: 10px 5px; margin-bottom: 15px; scrollbar-width: none; }
+        .cat-nav::-webkit-scrollbar { display: none; }
+        .cat-btn { background: #111; border: 1px solid #333; color: #888; padding: 8px 15px; border-radius: 20px; white-space: nowrap; font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .cat-btn.active { background: var(--p-orange); color: white; border-color: var(--p-orange); }
+
+        /* Status Tabs */
+        .status-bar { display: flex; gap: 8px; margin-bottom: 20px; background: #111; padding: 6px; border-radius: 10px; }
+        .status-btn { flex: 1; padding: 10px; border: none; background: transparent; color: #666; font-weight: bold; border-radius: 7px; cursor: pointer; font-size: 12px; }
+        .status-btn.active { background: #222; color: white; border: 1px solid #333; }
+
+        .match-card { background: var(--card); border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #222; border-left: 4px solid var(--p-orange); position: relative; }
+        .win-border { border-left-color: var(--green); }
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
+        .match-title { font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .time-tag { font-size: 10px; color: var(--green); font-weight: bold; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #0a0a0a; padding: 12px; border-radius: 10px; }
+        .detail-value { font-size: 13px; font-weight: 700; color: #eee; }
+        
+        .pending-badge { position: absolute; top: -8px; right: 10px; background: var(--p-orange); color: white; font-size: 8px; padding: 2px 8px; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+
+    <div style="padding: 10px 5px; font-weight: 900; font-size: 18px; color: var(--p-orange);">ADMIN CONTROL</div>
+
+    <div class="cat-nav" id="catNav">
+        <button class="cat-btn active" onclick="filterCat('BR PER KILL', this)">BR PER KILL</button>
+        <button class="cat-btn" onclick="filterCat('BR SURVIVAL', this)">BR SURVIVAL</button>
+        <button class="cat-btn" onclick="filterCat('CS HEADSHOT', this)">CS HEADSHOT</button>
+        <button class="cat-btn" onclick="filterCat('CLASH SQUAD', this)">CLASH SQUAD</button>
+    </div>
+
+    <div class="status-bar">
+        <button class="status-btn active" id="btnEnded" onclick="showStatus('ended', this)">ENDED</button>
+        <button class="status-btn" id="btnWin" onclick="showStatus('win', this)">WIN ADDED</button>
+    </div>
+
+    <div id="matchList"></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+            authDomain: "kl-esports.firebaseapp.com",
+            databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+            projectId: "kl-esports",
+            storageBucket: "kl-esports.appspot.com",
+            messagingSenderId: "440301376580",
+            appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        let currentCat = "BR PER KILL";
+        let currentStatus = "ended";
+
+        function filterCat(cat, btn) {
+            currentCat = cat;
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadData();
+        }
+
+        function showStatus(status, btn) {
+            currentStatus = status;
+            document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadData();
+        }
+
+        function loadData() {
+            db.ref('matches').on('value', snap => {
+                const matches = snap.val() || {};
+                const listDiv = document.getElementById('matchList');
+                listDiv.innerHTML = "";
+                let count = 0;
+
+                Object.keys(matches).reverse().forEach(id => {
+                    const m = matches[id];
+                    const mCat = (m.category || "").toUpperCase();
+                    const mStatus = (m.status || "").toLowerCase();
+                    
+                    // 🔥 FIX: Winners list undo ennum athil players undo ennum kirethyamayi check cheyyunnu
+                    const winnersNode = m.winners;
+                    const hasWinnersData = winnersNode && Object.keys(winnersNode).length > 0;
+
+                    if (mCat === currentCat) {
+                        let shouldShow = false;
+
+                        // 1. ENDED TAB: Match status 'ended' aakanam, pakshe winners list finalize aayi kaannaruth.
+                        if (currentStatus === 'ended' && mStatus === 'ended' && !hasWinnersData) {
+                            shouldShow = true;
+                        } 
+                        // 2. WIN ADDED TAB: Winners list-il aalukal undengil mathram (Finalized Matches).
+                        else if (currentStatus === 'win' && hasWinnersData) {
+                            shouldShow = true;
+                        }
+
+                        if (shouldShow) {
+                            listDiv.innerHTML += `
+                                <div class="match-card ${hasWinnersData ? 'win-border' : ''}" onclick="location.href='winning-sender-card.html?id=${id}'">
+                                    ${!hasWinnersData ? '<div class="pending-badge">ACTION NEEDED</div>' : ''}
+                                    <div class="card-header">
+                                        <div><span class="match-title">${m.category}</span></div>
+                                        <div class="time-tag">${m.date || ''} | ${m.time || ''}</div>
+                                    </div>
+                                    <div class="detail-grid">
+                                        <div><small style="color:#666; font-size:9px;">ENTRY</small><div class="detail-value">₹${m.entry || 0}</div></div>
+                                        <div><small style="color:#666; font-size:9px;">PRIZE</small><div class="detail-value">₹${m.prize || 0}</div></div>
+                                    </div>
+                                </div>`;
+                            count++;
+                        }
+                    }
+                });
+                if(count === 0) listDiv.innerHTML = `<p style='text-align:center; color:#444; margin-top:50px; font-size:12px;'>NO ${currentStatus.toUpperCase()} MATCHES FOUND</p>`;
+            });
+        }
+        loadData();
+    </script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transactions - KL ESPORTS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        :root { --p-orange: #ff4d00; --bg: #000; --card-bg: #111; --border: #222; --green: #0fa958; --red: #ff3b30; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; }
+        
+        .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid var(--p-orange); padding-bottom: 10px; margin-bottom: 20px; }
+        .back-btn { color: white; text-decoration: none; font-size: 18px; }
+
+        .filter-section { background: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .date-input { width: 100%; padding: 10px; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; outline: none; }
+
+        .section-title { font-size: 12px; color: var(--p-orange); font-weight: bold; margin: 20px 0 10px; text-transform: uppercase; border-left: 3px solid var(--p-orange); padding-left: 8px; }
+
+        .trans-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .trans-info b { font-size: 13px; display: block; }
+        .trans-info small { color: #555; font-size: 10px; }
+        
+        .amt { font-weight: bold; font-size: 15px; }
+        .amt.in { color: var(--green); }
+        .amt.out { color: var(--red); }
+
+        .no-data { text-align: center; color: #333; padding: 20px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <a href="user-check.html" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+    <h1 style="font-size: 16px; margin: 0;">TRANSACTIONS</h1>
+</div>
+
+<div class="filter-section">
+    <input type="date" id="transDate" class="date-input" onchange="loadTransactions()">
+</div>
+
+<div class="section-title">Add Money (Deposit)</div>
+<div id="addMoneyList"></div>
+
+<div class="section-title">Withdrawal (Cashout)</div>
+<div id="withdrawList"></div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+        authDomain: "kl-esports.firebaseapp.com",
+        databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+        projectId: "kl-esports",
+        storageBucket: "kl-esports.appspot.com",
+        messagingSenderId: "440301376580",
+        appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const uid = urlParams.get('uid');
+
+    window.onload = () => {
+        document.getElementById('transDate').value = new Date().toISOString().split('T')[0];
+        loadTransactions();
+    };
+
+    function loadTransactions() {
+        if(!uid) return;
+        const selDate = document.getElementById('transDate').value;
+        const addBox = document.getElementById('addMoneyList');
+        const drawBox = document.getElementById('withdrawList');
+
+        db.ref('users/' + uid).once('value', snap => {
+            const u = snap.val() || {};
+            
+            // Render Add Money
+            let addHtml = "";
+            const adds = u.add_money_history || {};
+            Object.values(adds).forEach(t => {
+                if(t.date === selDate) {
+                    addHtml += `<div class="trans-card">
+                        <div class="trans-info"><b>Deposit</b><small>${t.status || 'Success'}</small></div>
+                        <div class="amt in">+₹${t.amount || 0}</div>
+                    </div>`;
+                }
+            });
+            addBox.innerHTML = addHtml || '<div class="no-data">No deposits on this date</div>';
+
+            // Render Withdrawals
+            let drawHtml = "";
+            const draws = u.withdraw_history || u.withdrawals || {};
+            Object.values(draws).forEach(t => {
+                if(t.date === selDate) {
+                    drawHtml += `<div class="trans-card">
+                        <div class="trans-info"><b>Withdraw</b><small>${t.status || 'Pending'}</small></div>
+                        <div class="amt out">-₹${t.amount || 0}</div>
+                    </div>`;
+                }
+            });
+            drawBox.innerHTML = drawHtml || '<div class="no-data">No withdrawals on this date</div>';
+        });
+    }
+</script>
+
+</body>
+</html>

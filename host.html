@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Management - KL ESPORTS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #000000;
+            color: white;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #ff4d00;
+            margin-bottom: 30px;
+        }
+
+        .back-btn {
+            font-size: 20px;
+            color: #ff4d00;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
+        .header h1 { 
+            color: #ff4d00; 
+            margin: 0; 
+            text-transform: uppercase;
+            font-size: 22px;
+            letter-spacing: 1px;
+        }
+
+        /* Management Cards */
+        .admin-card {
+            background: #111111;
+            margin-bottom: 15px;
+            padding: 30px 25px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: 0.3s ease;
+            border: 1px solid #222;
+            border-left: 6px solid #ff4d00;
+        }
+
+        .admin-card:hover {
+            background: #1a1a1a;
+            transform: translateX(10px);
+            box-shadow: 0 5px 15px rgba(255, 77, 0, 0.2);
+        }
+
+        /* Second bar-nu oru different shade vendamenkil ithu use cheyyaam */
+        .admin-card.alt {
+            border-left: 6px solid #0fa958; /* Green for distinction */
+        }
+        
+        .admin-card.alt i, .admin-card.alt .arrow {
+            color: #0fa958;
+        }
+
+        .info { 
+            display: flex; 
+            align-items: center; 
+        }
+
+        .info i { 
+            font-size: 28px; 
+            margin-right: 20px; 
+            color: #ff4d00; 
+            width: 40px;
+            text-align: center;
+        }
+
+        .info h3 { 
+            margin: 0; 
+            font-size: 18px; 
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .arrow { 
+            font-size: 20px; 
+            color: #ff4d00;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <i class="fa-solid fa-arrow-left back-btn" onclick="location.href='admin-dashboard.html'"></i>
+    <h1>Host Management</h1>
+</div>
+
+<div class="admin-card" onclick="location.href='host-approval.html'">
+    <div class="info">
+        <i class="fa-solid fa-user-check"></i>
+        <h3>Host Approval</h3>
+    </div>
+    <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+</div>
+
+<div class="admin-card alt" onclick="location.href='host-match-sender.html'">
+    <div class="info">
+        <i class="fa-solid fa-paper-plane"></i>
+        <h3>Host Match Sender</h3>
+    </div>
+    <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+</div>
+
+</body>
+</html>

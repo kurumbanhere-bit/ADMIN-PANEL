@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Sender - KL ESPORTS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <style>
+        :root { --p-orange: #ff4d00; --bg: #000; --card: #111; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; padding: 20px; }
+        .header { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; }
+        .back-btn { font-size: 20px; color: #fff; cursor: pointer; }
+        
+        .sender-card { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid #222; box-shadow: 0 10px 30px rgba(255, 77, 0, 0.1); }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; font-weight: bold; }
+        
+        input, textarea { 
+            width: 100%; padding: 15px; background: #000; border: 1px solid #333; 
+            color: white; border-radius: 10px; box-sizing: border-box; outline: none; font-size: 15px;
+        }
+        input:focus, textarea:focus { border-color: var(--p-orange); }
+        
+        .btn-send { 
+            width: 100%; padding: 16px; background: var(--p-orange); color: #000; 
+            border: none; border-radius: 10px; font-weight: 800; cursor: pointer; 
+            text-transform: uppercase; font-size: 14px; letter-spacing: 1px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-send:disabled { background: #555; cursor: not-allowed; }
+        .status { margin-top: 15px; font-size: 13px; text-align: center; color: var(--p-orange); display: none; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <i class="fa-solid fa-arrow-left back-btn" onclick="history.back()"></i>
+    <h3 style="margin:0; text-transform:uppercase;">Broadcast Sender</h3>
+</div>
+
+<div class="sender-card">
+    <div class="form-group">
+        <label>Notification Title</label>
+        <input type="text" id="notifTitle" placeholder="Ex: New Match Live! 🔥">
+    </div>
+    
+    <div class="form-group">
+        <label>Message Content</label>
+        <textarea id="notifBody" rows="4" placeholder="Ex: Join now and win big prize pool!"></textarea>
+    </div>
+
+    <button class="btn-send" id="sendBtn" onclick="sendToAll()">
+        <i class="fa-solid fa-paper-plane"></i> SEND NOTIFICATION
+    </button>
+    
+    <div id="statusMsg" class="status">Sending... please wait...</div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+        authDomain: "kl-esports.firebaseapp.com",
+        databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+        projectId: "kl-esports",
+        storageBucket: "kl-esports.appspot.com",
+        messagingSenderId: "440301376580",
+        appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    async function sendToAll() {
+        const title = document.getElementById('notifTitle').value;
+        const body = document.getElementById('notifBody').value;
+        const btn = document.getElementById('sendBtn');
+        const status = document.getElementById('statusMsg');
+
+        if(!title || !body) { alert("Please fill Title and Message!"); return; }
+
+        // ⚠️ NINTE FIREBASE SERVER KEY IVIDE PASTE CHEYYUKA
+        const serverKey = 'YOUR_SERVER_KEY_HERE';
+
+        if(serverKey === 'YOUR_SERVER_KEY_HERE') {
+            alert("Please add your Firebase Server Key in the code first!");
+            return;
+        }
+
+        if(!confirm("Are you sure you want to send this to ALL players?")) return;
+
+        btn.disabled = true;
+        status.style.display = "block";
+
+        // Database-il ninnu tokens edukkunnu
+        const snapshot = await db.ref('users').once('value');
+        let count = 0;
+
+        if(snapshot.exists()) {
+            const promises = [];
+            snapshot.forEach(userSnap => {
+                const token = userSnap.val().fcmToken;
+                if(token) {
+                    count++;
+                    const p = fetch('https://fcm.googleapis.com/fcm/send', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json', 
+                            'Authorization': 'key=' + serverKey 
+                        },
+                        body: JSON.stringify({
+                            to: token,
+                            notification: {
+                                title: title,
+                                body: body,
+                                icon: "logo.png",
+                                badge: "logo.png",
+                                click_action: window.location.origin + "/index.html"
+                            },
+                            priority: "high"
+                        })
+                    });
+                    promises.push(p);
+                }
+            });
+
+            await Promise.all(promises);
+            alert("Success! Notification sent to " + count + " players. 🔥");
+        } else {
+            alert("No users with tokens found!");
+        }
+
+        btn.disabled = false;
+        status.style.display = "none";
+        document.getElementById('notifTitle').value = "";
+        document.getElementById('notifBody').value = "";
+    }
+</script>
+
+</body>
+</html>

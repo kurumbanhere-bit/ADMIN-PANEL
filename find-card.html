@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Details - KL ESPORTS</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        :root { --p-orange: #ff4d00; --bg: #000; --card-bg: #0d0d0d; --text: #eee; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 12px; }
+        
+        #matchInfo { background: #111; padding: 12px; border-radius: 10px; margin-bottom: 15px; border-bottom: 3px solid var(--p-orange); }
+        .m-title { font-size: 16px; font-weight: bold; color: var(--p-orange); text-transform: uppercase; }
+
+        /* Compact Tabs */
+        .tabs { display: flex; gap: 8px; margin-bottom: 15px; }
+        .tab-btn { flex: 1; padding: 10px; background: #1a1a1a; border: none; color: #888; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .tab-btn.active { background: var(--p-orange); color: white; }
+
+        .list-container { display: none; }
+        .list-container.active { display: block; }
+
+        /* SMALL COMPACT CARDS */
+        .player-card { 
+            background: var(--card-bg); border-radius: 8px; padding: 10px; 
+            margin-bottom: 8px; border: 1px solid #1a1a1a; display: flex; 
+            flex-direction: column; gap: 2px; position: relative;
+        }
+        
+        /* ONLY HIGHLIGHT TARGET USER */
+        .player-card.highlight { border: 1.5px solid var(--p-orange); background: #1a0a00; }
+        .target-tag { position: absolute; top: 8px; right: 10px; font-size: 9px; color: var(--p-orange); font-weight: bold; }
+
+        .p-row { font-size: 13px; color: #bbb; display: flex; gap: 5px; }
+        .p-val { color: #fff; font-weight: 600; }
+        .p-id { font-size: 12px; color: var(--p-orange); font-family: monospace; }
+
+        .no-data { text-align: center; padding: 20px; color: #444; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<div id="matchInfo">
+    <div id="mCategory" class="m-title">LOADING...</div>
+    <div id="mIDDisplay" style="font-size: 10px; color: #666;"></div>
+</div>
+
+<div class="tabs">
+    <button class="tab-btn active" onclick="openTab('participants', this)">PARTICIPANTS</button>
+    <button class="tab-btn" onclick="openTab('winners', this)">WINNERS</button>
+</div>
+
+<div id="participants" class="list-container active"></div>
+<div id="winners" class="list-container"></div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+        authDomain: "kl-esports.firebaseapp.com",
+        databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+        projectId: "kl-esports",
+        storageBucket: "kl-esports.appspot.com",
+        messagingSenderId: "440301376580",
+        appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const mID = urlParams.get('mid');
+    const targetUID = urlParams.get('uid'); // Admin history-il ninnulla UID
+
+    if (mID) { loadMatchData(mID); }
+
+    function loadMatchData(id) {
+        db.ref('matches/' + id).on('value', async snap => {
+            const m = snap.val();
+            if (!m) return;
+
+            document.getElementById('mCategory').innerText = m.category || 'Tournament';
+            document.getElementById('mIDDisplay').innerText = "ID: #" + id.slice(-6).toUpperCase();
+
+            const pDiv = document.getElementById('participants');
+            pDiv.innerHTML = "";
+            const participants = m.participants || {};
+            const pKeys = Object.keys(participants);
+
+            if (pKeys.length === 0) {
+                pDiv.innerHTML = '<div class="no-data">NO PLAYERS</div>';
+            } else {
+                for (let key of pKeys) {
+                    const p = participants[key];
+                    
+                    // HIGHLIGHT LOGIC: Target UID match aayaal maathram
+                    const isTarget = (p.uid === targetUID);
+
+                    let appUser = p.username || p.userName || p.name || "Fetching...";
+                    if (appUser === "Fetching..." && p.uid) {
+                        const uSnap = await db.ref('users/' + p.uid).once('value');
+                        appUser = uSnap.exists() ? (uSnap.val().username || uSnap.val().name) : "User";
+                    }
+
+                    pDiv.innerHTML += `
+                        <div class="player-card ${isTarget ? 'highlight' : ''}">
+                            ${isTarget ? '<span class="target-tag">SELECTED</span>' : ''}
+                            <div class="p-row">User: <span class="p-val">${appUser}</span></div>
+                            <div class="p-row">Game: <span class="p-val" style="color:#00ff88">${p.playerName || p.gameName || 'N/A'}</span></div>
+                            <div class="p-id">ID: ${p.playerID || p.gameID || 'N/A'}</div>
+                        </div>`;
+                }
+            }
+
+            // WINNERS (Compact)
+            const wDiv = document.getElementById('winners');
+            wDiv.innerHTML = "";
+            const winners = m.winners || {};
+            if (Object.keys(winners).length === 0) {
+                wDiv.innerHTML = '<div class="no-data">NO WINNERS</div>';
+            } else {
+                Object.values(winners).forEach(w => {
+                    wDiv.innerHTML += `
+                        <div class="player-card" style="border-left: 3px solid #00ff88;">
+                            <div class="p-row" style="color:#00ff88">🏆 Winner: <span class="p-val">${w.playerName || w.name}</span></div>
+                            <div class="p-row">Prize: <span class="p-val">₹${w.prize || 0}</span></div>
+                        </div>`;
+                });
+            }
+        });
+    }
+
+    function openTab(tabName, btn) {
+        document.querySelectorAll('.list-container').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabName).classList.add('active');
+        btn.classList.add('active');
+    }
+</script>
+</body>
+</html>

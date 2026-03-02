@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Approval - Admin Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --p-orange: #ff4d00;
+            --p-green: #0fa958;
+            --bg: #000000;
+            --card-bg: #111111;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--p-orange);
+        }
+
+        .back-btn {
+            font-size: 20px;
+            color: var(--p-orange);
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
+        .header h1 { 
+            color: var(--p-orange); 
+            margin: 0; 
+            font-size: 20px; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Background "No Request" Style */
+        #noRequestBox {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: -1;
+        }
+
+        #noRequestBox i {
+            font-size: 70px;
+            color: #222;
+            margin-bottom: 10px;
+        }
+
+        #noRequestBox p {
+            font-size: 16px;
+            font-weight: 800;
+            color: #222;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0;
+        }
+
+        /* Request Cards */
+        #requestList {
+            margin-top: 10px;
+        }
+
+        .request-card {
+            background: var(--card-bg);
+            padding: 18px;
+            border-radius: 12px;
+            border-left: 5px solid var(--p-orange);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease-out;
+            border: 1px solid #222;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .host-info h3 {
+            margin: 0;
+            font-size: 15px;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .host-info p {
+            margin: 4px 0 0 0;
+            font-size: 12px;
+            color: #666;
+            font-family: monospace;
+        }
+
+        .actions {
+            display: flex;
+            gap: 20px;
+        }
+
+        .actions i {
+            font-size: 22px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .fa-check { color: var(--p-green); }
+        .fa-check:hover { transform: scale(1.2); }
+
+        .fa-xmark { color: var(--p-orange); }
+        .fa-xmark:hover { transform: scale(1.2); }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <i class="fa-solid fa-arrow-left back-btn" onclick="location.href='host.html'"></i>
+    <h1>Host Approval Requests</h1>
+</div>
+
+<div id="noRequestBox">
+    <i class="fa-solid fa-envelope-open-text"></i>
+    <p>No Requests</p>
+</div>
+
+<div id="requestList"></div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+        authDomain: "kl-esports.firebaseapp.com",
+        databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+        projectId: "kl-esports",
+        storageBucket: "kl-esports.appspot.com",
+        messagingSenderId: "440301376580",
+        appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function loadRequests() {
+        // Only show requests where status is "pending"
+        db.ref('host_requests').on('value', snap => {
+            const list = document.getElementById('requestList');
+            const noBox = document.getElementById('noRequestBox');
+            list.innerHTML = "";
+            
+            let hasPending = false;
+
+            if (snap.exists()) {
+                snap.forEach(child => {
+                    const req = child.val();
+                    if (req.status === "pending") {
+                        hasPending = true;
+                        list.innerHTML += `
+                            <div class="request-card">
+                                <div class="host-info">
+                                    <h3>${req.email}</h3>
+                                    <p>PW: ${req.password}</p>
+                                </div>
+                                <div class="actions">
+                                    <i class="fa-solid fa-check" onclick="updateHost('${child.key}', 'approved')" title="Approve"></i>
+                                    <i class="fa-solid fa-xmark" onclick="updateHost('${child.key}', 'rejected')" title="Reject"></i>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+            }
+
+            // Toggle background message
+            if (hasPending) {
+                noBox.style.display = 'none';
+            } else {
+                noBox.style.display = 'block';
+            }
+        });
+    }
+
+    function updateHost(id, newStatus) {
+        const action = newStatus === 'approved' ? 'Approve' : 'Reject';
+        if(confirm(`${action} this host?`)) {
+            db.ref('host_requests/' + id).update({
+                status: newStatus
+            }).then(() => {
+                console.log("Status updated to " + newStatus);
+            });
+        }
+    }
+
+    loadRequests();
+</script>
+
+</body>
+</html>

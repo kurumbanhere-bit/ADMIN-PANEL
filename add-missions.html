@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - KL ESPORTS Mission Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .admin-card { 
+            padding: 20px; background: #fff; border-radius: 15px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 30px; 
+            max-width: 500px; margin-left: auto; margin-right: auto;
+        }
+        h3 { color: #0fa958; margin-top: 0; text-align: center; }
+        .input-group { margin-bottom: 15px; }
+        label { font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 5px; }
+        input, select { 
+            width: 100%; padding: 12px; border-radius: 10px; 
+            border: 1px solid #ddd; box-sizing: border-box; 
+        }
+        .upload-btn { 
+            background: #0fa958; color: #fff; padding: 15px; border: none; 
+            border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%;
+        }
+        .mission-item {
+            background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-left: 5px solid #0fa958; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+
+<div class="admin-card">
+    <h3><i class="fa-solid fa-robot"></i> AI Mission Manager</h3>
+    
+    <div class="input-group">
+        <label>Task Category</label>
+        <select id="taskCat">
+            <option value="Daily">Daily Task</option>
+            <option value="Weekly">Weekly Task</option>
+            <option value="Special">Special Reward</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label>Reward Amount (₹)</label>
+        <input type="number" id="taskAmount" placeholder="Example: 10">
+    </div>
+
+    <div class="input-group">
+        <label>Mission Description (AI will read this)</label>
+        <input type="text" id="taskReason" placeholder="Example: Play 5 matches or Sign up">
+    </div>
+
+    <button class="upload-btn" onclick="addNewTaskAI()">
+        GENERATE SMART MISSION
+    </button>
+</div>
+
+<div id="adminTaskList" style="max-width: 500px; margin: 0 auto;">
+    <h4 style="color: #555;">Live Missions</h4>
+    </div>
+
+<script>
+    // --- FIREBASE CONFIG (Ninte Config Idu) ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+        authDomain: "kl-esports.firebaseapp.com",
+        databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+        projectId: "kl-esports",
+        storageBucket: "kl-esports.appspot.com",
+        messagingSenderId: "440301376580",
+        appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 1. Mission Upload Logic (With AI Parsing)
+    function addNewTaskAI() {
+        const cat = document.getElementById('taskCat').value;
+        const amount = document.getElementById('taskAmount').value;
+        const reason = document.getElementById('taskReason').value;
+        const reasonLower = reason.toLowerCase();
+
+        if(!amount || !reason) return alert("Fill all fields!");
+
+        // AI Logic: Keyword Detection
+        let mType = "general";
+        let reqVal = 0;
+
+        if (reasonLower.includes("sign up") || reasonLower.includes("new user")) {
+            mType = "signup";
+        } else if (reasonLower.includes("match")) {
+            mType = "matches";
+            const nums = reasonLower.match(/\d+/); 
+            reqVal = nums ? parseInt(nums[0]) : 1;
+        }
+
+        const mid = db.ref('missions').push().key;
+        const missionData = {
+            id: mid,
+            category: cat,
+            amount: parseInt(amount),
+            description: reason,
+            type: mType,
+            reqValue: reqVal,
+            status: "active"
+        };
+
+        db.ref('missions/' + mid).set(missionData).then(() => {
+            alert("Smart Mission Uploaded! 🚀");
+            document.getElementById('taskAmount').value = "";
+            document.getElementById('taskReason').value = "";
+        }).catch(e => alert(e.message));
+    }
+
+    // 2. Real-time List for Admin (Delete option included)
+    function loadAdminMissions() {
+        db.ref('missions').on('value', snap => {
+            const listDiv = document.getElementById('adminTaskList');
+            listDiv.innerHTML = "<h4 style='color:#555;'>Live Missions</h4>";
+            
+            if(!snap.exists()) {
+                listDiv.innerHTML += "<p style='color:#999;'>No missions found.</p>";
+                return;
+            }
+
+            snap.forEach(child => {
+                const m = child.val();
+                listDiv.innerHTML += `
+                    <div class="mission-item">
+                        <div>
+                            <div style="font-size:10px; color:#0fa958; font-weight:bold;">${m.type.toUpperCase()}</div>
+                            <div style="font-weight:bold;">${m.description}</div>
+                            <div style="font-size:12px; color:#888;">Reward: ₹${m.amount}</div>
+                        </div>
+                        <button onclick="deleteMission('${m.id}')" style="background:none; border:none; color:red; cursor:pointer;">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>`;
+            });
+        });
+    }
+
+    function deleteMission(id) {
+        if(confirm("Delete this mission?")) db.ref('missions/' + id).remove();
+    }
+
+    // Start List
+    loadAdminMissions();
+</script>
+
+</body>
+</html>

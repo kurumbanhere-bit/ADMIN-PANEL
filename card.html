@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Management - Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        :root { --p-green: #0fa958; --bg: #f8fafc; --white: #ffffff; --red: #ef4444; --p-orange: #ff4d00; --text-dark: #1e293b; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 15px; }
+        .top-nav { display: flex; align-items: center; padding: 10px 0; gap: 15px; }
+        .back-btn { font-size: 20px; color: #333; cursor: pointer; }
+        .card { background: var(--white); border-radius: 15px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .status-container { display: flex; justify-content: space-around; margin-bottom: 25px; background: #f1f5f9; padding: 10px; border-radius: 12px; }
+        .status-item { text-align: center; opacity: 0.4; transition: 0.3s; cursor: pointer; color: #64748b; flex: 1; }
+        .status-item.active { opacity: 1; color: var(--p-orange); }
+        .status-item i { font-size: 20px; margin-bottom: 4px; display: block; }
+        .status-item span { font-size: 10px; font-weight: bold; text-transform: uppercase; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .info-box { background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px solid #f1f5f9; }
+        .info-box label { font-size: 10px; color: #94a3b8; display: block; margin-bottom: 4px; text-transform: uppercase; font-weight: bold; }
+        .info-box span { font-size: 15px; font-weight: 800; color: var(--text-dark); }
+        .room-section-title { font-size: 12px; font-weight: 800; color: #475569; margin-bottom: 15px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+        .input-box { margin-bottom: 18px; }
+        .input-box label { font-size: 11px; color: #64748b; display: block; margin-bottom: 8px; font-weight: 600; }
+        .input-box input { width: 100%; padding: 14px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 15px; font-weight: 600; box-sizing: border-box; outline: none; transition: 0.3s; background: #fff; }
+        .input-box input:focus { border-color: var(--p-green); background: #f0fff4; }
+        .btn-update { width: 100%; padding: 16px; background: var(--p-green); color: white; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(15, 169, 88, 0.2); transition: 0.3s; }
+        .btn-update:active { transform: scale(0.97); }
+    </style>
+</head>
+<body>
+
+<div class="top-nav">
+    <i class="fa-solid fa-arrow-left back-btn" onclick="location.href='add-match.html'"></i>
+    <h3 id="matchTitle" style="margin:0; text-transform:uppercase; color: var(--text-dark);">Admin Panel</h3>
+</div>
+
+<div class="card">
+    <div class="status-container">
+        <div class="status-item" id="stat-upcoming" onclick="updateStatus('upcoming')"><i class="fa-regular fa-clock"></i><span>Upcoming</span></div>
+        <div class="status-item" id="stat-started" onclick="updateStatus('started')"><i class="fa-regular fa-circle-play"></i><span>Started</span></div>
+        <div class="status-item" id="stat-ended" onclick="updateStatus('ended')"><i class="fa-regular fa-circle-stop"></i><span>Ended</span></div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-box"><label>Joined</label><span><span id="mJoined">0</span> / <span id="mMax">0</span></span></div>
+        <div class="info-box"><label>Prize</label><span>₹<span id="mPrize">0</span></span></div>
+    </div>
+
+    <div class="room-section-title"><i class="fa-solid fa-shield-halved" style="color:var(--p-green)"></i> Room Credentials</div>
+    <div class="input-box"><label>ROOM ID</label><input type="text" id="roomIdInput" placeholder="Enter ID here"></div>
+    <div class="input-box"><label>ROOM PASSWORD</label><input type="text" id="roomPassInput" placeholder="Enter Password here"></div>
+
+    <button class="btn-update" id="updateBtn" onclick="updateRoomDetails()">Update Room Details</button>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+        authDomain: "kl-esports.firebaseapp.com",
+        databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+        projectId: "kl-esports",
+        storageBucket: "kl-esports.appspot.com",
+        messagingSenderId: "440301376580",
+        appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const urlParams = new URLSearchParams(window.location.search);
+    const matchId = urlParams.get('id');
+
+    // 📢 NOTIFICATION LOGIC
+    async function sendRoomNotification(rid, rpass, mName) {
+        // ⚠️ IVIDE FIREBASE SERVER KEY IDUKA
+        const serverKey = 'YOUR_SERVER_KEY_HERE';
+
+        const snap = await db.ref('matches/' + matchId + '/participants').once('value');
+        if (snap.exists()) {
+            const players = snap.val();
+            Object.values(players).forEach(async (p) => {
+                const userSnap = await db.ref('users/' + p.uid + '/fcmToken').once('value');
+                if (userSnap.exists()) {
+                    const token = userSnap.val();
+                    const bodyContent = "Id : " + rid + "\nPass : " + rpass + "\nroom will start after 10 minutes join fast 🔥🔥";
+                    
+                    fetch('https://fcm.googleapis.com/fcm/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'key=' + serverKey },
+                        body: JSON.stringify({
+                            to: token,
+                            notification: {
+                                title: "Match: " + mName,
+                                body: bodyContent,
+                                icon: "logo.png",
+                                badge: "logo.png",
+                                click_action: "https://kl-esports.web.app/my-matches.html"
+                            },
+                            priority: "high"
+                        })
+                    });
+                }
+            });
+        }
+    }
+
+    function loadData() {
+        if(!matchId) return;
+        db.ref('matches/' + matchId).on('value', snap => {
+            const m = snap.val();
+            if(!m) return;
+            document.getElementById('matchTitle').innerText = m.category || "Tournament";
+            document.getElementById('mPrize').innerText = m.prize || 0;
+            document.getElementById('mJoined').innerText = m.joined || 0;
+            document.getElementById('mMax').innerText = m.max || 0;
+            if(m.roomId) document.getElementById('roomIdInput').value = m.roomId;
+            if(m.roomPass) document.getElementById('roomPassInput').value = m.roomPass;
+            updateStatusUI(m.status || 'upcoming');
+        });
+    }
+
+    function updateRoomDetails() {
+        const rid = document.getElementById('roomIdInput').value;
+        const rpass = document.getElementById('roomPassInput').value;
+        const mName = document.getElementById('matchTitle').innerText;
+
+        if(!rid) return alert("Please enter a Room ID!");
+
+        db.ref('matches/' + matchId).update({
+            roomId: rid,
+            roomPass: rpass
+        }).then(() => {
+            sendRoomNotification(rid, rpass, mName);
+            alert("Room details updated & Notification sent! 🔥");
+        }).catch(err => alert("Error: " + err.message));
+    }
+
+    function updateStatusUI(status) {
+        document.querySelectorAll('.status-item').forEach(el => el.classList.remove('active'));
+        const el = document.getElementById('stat-' + status.toLowerCase());
+        if(el) el.classList.add('active');
+    }
+
+    function updateStatus(status) {
+        db.ref('matches/' + matchId).update({ status: status.toLowerCase() }).then(() => {
+            if(status.toLowerCase() === 'ended') {
+                window.location.href = 'send-winnings.html?id=' + matchId; 
+            }
+        });
+    }
+
+    loadData();
+</script>
+</body>
+</html>

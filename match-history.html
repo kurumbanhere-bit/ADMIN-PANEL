@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KL ESPORTS - User All History</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        :root { --p-orange: #ff4d00; --bg: #000; --card-bg: #0d0d0d; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; padding: 15px; margin: 0; }
+        .header { font-size: 18px; color: var(--p-orange); font-weight: bold; text-align: center; margin-bottom: 20px; border-bottom: 1px solid #222; padding-bottom: 10px; }
+        
+        .match-card { 
+            background: var(--card-bg); border-radius: 12px; margin-bottom: 15px; 
+            padding: 15px; border: 1px solid #1a1a1a; border-left: 5px solid var(--p-orange);
+            cursor: pointer; transition: 0.2s;
+        }
+        .match-card:active { transform: scale(0.97); }
+        
+        .m-title { font-size: 16px; font-weight: bold; color: var(--p-orange); margin-bottom: 10px; text-transform: uppercase; display: flex; justify-content: space-between; }
+        .m-date { font-size: 11px; color: #555; }
+
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border-top: 1px solid #222; padding-top: 10px; }
+        .info-box { font-size: 13px; color: #888; }
+        .val { color: #eee; font-weight: 500; }
+
+        .time-box { margin-bottom: 8px; font-size: 13px; color: #bbb; display: flex; gap: 10px; }
+
+        #noMatches { text-align: center; margin-top: 50px; color: #444; font-weight: bold; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="header" id="userTitle">ALL JOINED MATCHES</div>
+<div id="matchHistoryList"></div>
+<div id="noMatches">NO JOINED MATCHES FOUND</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+        authDomain: "kl-esports.firebaseapp.com",
+        databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+        projectId: "kl-esports",
+        storageBucket: "kl-esports.appspot.com",
+        messagingSenderId: "440301376580",
+        appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetUID = urlParams.get('uid');
+
+    if (targetUID) {
+        loadAllHistory(targetUID);
+    }
+
+    function loadAllHistory(uid) {
+        // User Name Title
+        db.ref('users/' + uid).once('value', s => {
+            if(s.exists()) document.getElementById('userTitle').innerText = s.val().name.toUpperCase() + " - HISTORY";
+        });
+
+        // Filter okke maatti, motham matches load cheyyunnu
+        db.ref('matches').on('value', snap => {
+            const matches = snap.val() || {};
+            const container = document.getElementById('matchHistoryList');
+            const noMatchesDiv = document.getElementById('noMatches');
+            
+            container.innerHTML = "";
+            let count = 0;
+
+            // Matches loop cheyyunnu
+            Object.keys(matches).reverse().forEach(mID => { // Reverse: New matches first
+                const m = matches[mID];
+                if (!m || !m.participants) return;
+
+                // User joined check
+                const isJoined = Object.values(m.participants).some(p => p && p.uid === uid);
+
+                if (isJoined) {
+                    count++;
+                    container.innerHTML += `
+                        <div class="match-card" onclick="window.location.href='find-card.html?mid=${mID}'">
+                            <div class="m-title">
+                                <span>${m.category || 'Tournament'}</span>
+                                <span class="m-date">${m.date ? m.date.split('T')[0] : 'TBA'}</span>
+                            </div>
+                            <div class="time-box">
+                                <span>Time: <span class="val">${m.time || 'TBA'}</span></span>
+                                <span>Map: <span class="val">${m.map || 'Bermuda'}</span></span>
+                            </div>
+                            <div class="info-grid">
+                                <div class="info-box">Entry: <span class="val">₹${m.entry || 0}</span></div>
+                                <div class="info-box">Per Kill: <span class="val">₹${m.perkill || 0}</span></div>
+                                <div class="info-box">Win Prize: <span class="val">₹${m.winprize || 0}</span></div>
+                                <div class="info-box">Match ID: <span class="val">#${mID.slice(-5)}</span></div>
+                            </div>
+                        </div>`;
+                }
+            });
+            noMatchesDiv.style.display = (count === 0) ? 'block' : 'none';
+        });
+    }
+</script>
+</body>
+</html>

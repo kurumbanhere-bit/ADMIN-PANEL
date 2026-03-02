@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - KL ESPORTS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root { --mpl-pink: #e91e63; --bg: #f4f7f6; --green: #28a745; --red: #dc3545; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; }
+        .header { background: #222; color: white; padding: 15px; text-align: center; position: sticky; top: 0; z-index: 100; }
+        .nav-tabs { display: flex; background: white; border-bottom: 2px solid #eee; }
+        .tab { flex: 1; padding: 15px; text-align: center; font-weight: bold; color: #888; cursor: pointer; transition: 0.3s; }
+        .tab.active { color: var(--mpl-pink); border-bottom: 3px solid var(--mpl-pink); background: #fff5f8; }
+        .container { padding: 15px; }
+        .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.05); border-left: 5px solid #ddd; }
+        .deposit-border { border-left-color: var(--green); }
+        .withdraw-border { border-left-color: #f39c12; }
+        .details { font-size: 14px; margin: 5px 0; color: #444; }
+        .amt { font-size: 20px; font-weight: bold; color: #222; margin-top: 5px; }
+        .utr-text { color: #007bff; font-weight: bold; }
+        .btn-group { display: flex; gap: 8px; margin-top: 12px; }
+        .btn { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; }
+        .btn-approve { background: var(--green); }
+        .btn-reject { background: var(--red); }
+        #empty-msg { text-align: center; color: #999; margin-top: 50px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h3 style="margin:0">KL ADMIN PANEL</h3>
+</div>
+
+<div class="nav-tabs">
+    <div class="tab active" id="addTab" onclick="switchTab('add')">ADD MONEY</div>
+    <div class="tab" id="withdrawTab" onclick="switchTab('withdraw')">WITHDRAW MONEY</div>
+</div>
+
+<div class="container" id="listContainer"></div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+    authDomain: "kl-esports.firebaseapp.com",
+    databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+    projectId: "kl-esports",
+    storageBucket: "kl-esports.appspot.com",
+    messagingSenderId: "440301376580",
+    appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let currentView = 'add';
+
+function switchTab(type) {
+    currentView = type;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(type === 'add' ? 'addTab' : 'withdrawTab').classList.add('active');
+    fetchData();
+}
+
+function fetchData() {
+    const container = document.getElementById('listContainer');
+    // Ippo transactions node-il ninnu thanne data edukkunnu for real-time history sync
+    db.ref("transactions").on("value", (snapshot) => {
+        container.innerHTML = "";
+        const data = snapshot.val();
+        if(!data) {
+            container.innerHTML = '<div id="empty-msg">No pending requests!</div>';
+            return;
+        }
+
+        let count = 0;
+        Object.keys(data).forEach(id => {
+            const req = data[id];
+            if(req.status !== "pending") return;
+
+            // View switch logic
+            if(currentView === 'add' && req.type === 'deposit') {
+                const card = document.createElement('div');
+                card.className = "card deposit-border";
+                card.innerHTML = `
+                    <div class="details"><b>User UID:</b> ${req.uid}</div>
+                    <div class="details"><b>UTR:</b> <span class="utr-text">${req.utr || 'N/A'}</span></div>
+                    <div class="amt">₹${req.amount}</div>
+                    <div class="btn-group">
+                        <button class="btn btn-approve" onclick="approveDeposit('${id}', '${req.uid}', ${req.amount})">APPROVE</button>
+                        <button class="btn btn-reject" onclick="rejectDeposit('${id}', '${req.uid}')">REJECT</button>
+                    </div>
+                `;
+                container.appendChild(card);
+                count++;
+            } else if (currentView === 'withdraw' && req.type === 'withdrawal') {
+                const card = document.createElement('div');
+                card.className = "card withdraw-border";
+                card.innerHTML = `
+                    <div class="details"><b>User UID:</b> ${req.uid}</div>
+                    <div class="details"><b>UPI ID:</b> <span class="utr-text">${req.upiId || 'N/A'}</span></div>
+                    <div class="amt">₹${req.amount}</div>
+                    <div class="btn-group">
+                        <button class="btn btn-approve" style="background:#007bff" onclick="approveWithdrawal('${id}')">MARK AS PAID</button>
+                        <button class="btn btn-reject" onclick="rejectWithdrawal('${id}', '${req.uid}', ${req.amount})">REJECT & REFUND</button>
+                    </div>
+                `;
+                container.appendChild(card);
+                count++;
+            }
+        });
+        if(count === 0) container.innerHTML = '<div id="empty-msg">No pending requests!</div>';
+    });
+}
+
+async function getCleanWallet(uid) {
+    const snap = await db.ref(`users/${uid}/wallet`).once("value");
+    const data = snap.val();
+    let dep = 0, win = 0;
+    if (data && typeof data === 'object') {
+        dep = Number(data.deposit) || 0;
+        win = Number(data.winnings) || 0;
+    } else {
+        dep = Number(data) || 0;
+    }
+    return { deposit: dep, winnings: win };
+}
+
+// --- DEPOSIT ACTIONS ---
+async function approveDeposit(txId, uid, amount) {
+    if(!confirm("Approve ₹" + amount + "?")) return;
+    try {
+        const wallet = await getCleanWallet(uid);
+        await db.ref(`users/${uid}/wallet`).update({ deposit: wallet.deposit + Number(amount) });
+        await db.ref(`transactions/${txId}`).update({ status: "success" });
+        alert("Approved!");
+    } catch(e) { alert("Error: " + e.message); }
+}
+
+async function rejectDeposit(txId, uid) {
+    if(!confirm("Reject this deposit?")) return;
+    try {
+        await db.ref(`transactions/${txId}`).update({ status: "failed" });
+        alert("Rejected!");
+    } catch(e) { alert("Error: " + e.message); }
+}
+
+// --- WITHDRAWAL ACTIONS ---
+async function approveWithdrawal(txId) {
+    if(!confirm("Mark this Withdrawal as Completed/Paid?")) return;
+    try {
+        // Ippo transactions node-ile status success aakkumbol wallet history-il green aakum
+        await db.ref(`transactions/${txId}`).update({ status: "success" });
+        alert("Marked as Paid!");
+    } catch(e) { alert("Error: " + e.message); }
+}
+
+async function rejectWithdrawal(txId, uid, amount) {
+    if(!confirm("Reject & Refund ₹" + amount + "?")) return;
+    try {
+        const wallet = await getCleanWallet(uid);
+        // Refund winnings back to user
+        await db.ref(`users/${uid}/wallet`).update({ winnings: wallet.winnings + Number(amount) });
+        // Update history to failed
+        await db.ref(`transactions/${txId}`).update({ status: "failed" });
+        alert("Rejected & Refunded Successfully!");
+    } catch(e) { alert("Error: " + e.message); }
+}
+
+fetchData();
+</script>
+</body>
+</html>
