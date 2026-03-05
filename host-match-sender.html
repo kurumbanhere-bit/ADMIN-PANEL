@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin - Host & Send</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        :root { --p-orange: #ff4d00; --bg: #000; --card-bg: #111; --green: #0fa958; --red: #ff3b30; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; }
+        .header { display: flex; align-items: center; border-bottom: 2px solid var(--p-orange); padding: 10px 0; margin-bottom: 20px; }
+        
+        .host-card { 
+            background: var(--card-bg); border: 1px solid #222; border-radius: 12px; 
+            padding: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; 
+            align-items: center; transition: 0.2s;
+        }
+        .host-info { flex-grow: 1; cursor: pointer; } 
+        .host-info h3 { margin: 0; font-size: 14px; color: #fff; }
+        .host-info p { margin: 3px 0 0; font-size: 10px; color: #666; }
+
+        .btn-send-match {
+            background: var(--p-orange); color: #000; border: none; padding: 10px 15px;
+            border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer;
+            margin-left: 10px; text-transform: uppercase;
+        }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; overflow-y: auto; padding: 15px; }
+        .modal-content { background: #1a1a1a; border-radius: 15px; padding: 20px; max-width: 600px; margin: auto; position: relative; }
+        
+        /* 🔥 DELETE HOST ACCOUNT BUTTON */
+        .btn-delete-account {
+            width: 100%; background: var(--red); color: white; border: none; padding: 12px;
+            border-radius: 10px; font-size: 11px; font-weight: 800; cursor: pointer; margin-bottom: 20px;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .match-box { background: #222; padding: 15px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid var(--p-orange); position: relative; }
+        .delete-btn { position: absolute; top: 15px; right: 15px; color: var(--red); cursor: pointer; font-size: 18px; }
+        .btn-row { display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap; }
+        .btn { padding: 8px 12px; border: none; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer; }
+        input { width: 100%; padding: 10px; margin: 5px 0; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; box-sizing: border-box; }
+        .player-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 11px; margin-top: 10px; }
+        .player-name { background: #1a1a1a; padding: 5px 8px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <i class="fa-solid fa-arrow-left" onclick="window.history.back()" style="margin-right:15px; cursor:pointer; color: var(--p-orange);"></i>
+    <h1>Host Manager</h1>
+</div>
+
+<div id="hostList"></div>
+
+<div id="controlModal" class="modal">
+    <div class="modal-content">
+        <span style="float:right; cursor:pointer; color:var(--p-orange);" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></span>
+        <h2 id="mHostEmail" style="font-size: 15px; margin-bottom: 10px;"></h2>
+        
+        <button class="btn-delete-account" id="delAccBtn">
+            <i class="fa-solid fa-user-xmark"></i> DELETE HOST ACCOUNT PERMANENTLY
+        </button>
+
+        <div id="matchDetailsArea"></div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+        authDomain: "kl-esports.firebaseapp.com",
+        databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+        projectId: "kl-esports",
+        storageBucket: "kl-esports.appspot.com",
+        messagingSenderId: "440301376580",
+        appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function loadHosts() {
+        db.ref('host_requests').on('value', snap => {
+            const list = document.getElementById('hostList');
+            list.innerHTML = "";
+            snap.forEach(child => {
+                const host = child.val();
+                if (host.status === "approved") {
+                    list.innerHTML += `
+                        <div class="host-card">
+                            <div class="host-info" onclick="openControl('${child.key}', '${host.email}')">
+                                <h3>${host.email}</h3>
+                                <p>Click to manage or delete account</p>
+                            </div>
+                            <button class="btn-send-match" onclick="sendSelectedToHost('${host.email}')">Send Match</button>
+                        </div>`;
+                }
+            });
+        });
+    }
+
+    function openControl(hostKey, email) {
+        const fEmail = email.replace(/[.$#[\]]/g, "_");
+        document.getElementById('mHostEmail').innerText = "HOST: " + email;
+        
+        // Account Delete Button Setup
+        document.getElementById('delAccBtn').onclick = () => deleteHostAccount(hostKey, fEmail, email);
+
+        db.ref('matches').on('value', snap => {
+            const area = document.getElementById('matchDetailsArea');
+            area.innerHTML = "";
+            let count = 0;
+            snap.forEach(child => {
+                if (child.val().assignedHost === fEmail) {
+                    count++;
+                    const mId = child.key;
+                    const m = child.val();
+                    let pList = m.participants ? Object.values(m.participants) : [];
+                    let playerHtml = pList.length > 0 ? pList.map(p => `<div class="player-name">${p.playerName || 'User'}</div>`).join("") : "No players";
+                    
+                    area.innerHTML += `
+                        <div class="match-box">
+                            <strong>${m.category || 'Tournament'}</strong>
+                            <div class="btn-row">
+                                <button class="btn" style="background:#444; color:#fff;" onclick="unassignMatch('${mId}')">Unassign Match</button>
+                            </div>
+                            <div class="player-grid">${playerHtml}</div>
+                        </div>`;
+                }
+            });
+            if(count === 0) area.innerHTML = "<p style='color:#666; text-align:center;'>No matches assigned.</p>";
+        });
+        document.getElementById('controlModal').style.display = 'block';
+    }
+
+    // 🔥 DELETE HOST ACCOUNT LOGIC
+    async function deleteHostAccount(hostKey, fEmail, originalEmail) {
+        if (!confirm(`WARNING: This will PERMANENTLY DELETE the account of ${originalEmail}. They will lose access to the host panel. Are you sure?`)) return;
+
+        // 1. Unassign all matches first
+        const snap = await db.ref('matches').once('value');
+        const updates = {};
+        snap.forEach(child => {
+            if (child.val().assignedHost === fEmail) {
+                updates[`/matches/${child.key}/assignedHost`] = null;
+            }
+        });
+
+        // 2. Delete the account from host_requests and update matches
+        await db.ref().update(updates);
+        await db.ref('host_requests/' + hostKey).remove();
+
+        alert("Account Deleted Successfully!");
+        closeModal();
+    }
+
+    function unassignMatch(id) {
+        if (confirm("Unassign this match?")) db.ref('matches/' + id).update({ assignedHost: null });
+    }
+
+    function closeModal() { document.getElementById('controlModal').style.display = 'none'; }
+    loadHosts();
+</script>
+</body>
+</html>
