@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KL ESPORTS - Admin Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root { 
+            --p-green: #0fa958; 
+            --bg: #f4f7f9; 
+            --upcoming: #28a745; 
+            --started: #dc3545;  
+            --ended: #6c757d;
+            --p-orange: #ff4d00;    
+            --red: #ff3b30;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 15px; margin: 0; padding-bottom: 100px; }
+        
+        .header { text-align: left; padding: 10px 5px; font-weight: 800; color: #333; font-size: 22px; }
+        .sub-header { font-size: 13px; color: #888; margin-top: -10px; margin-bottom: 20px; padding-left: 5px; }
+
+        .cat-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0 20px 0; white-space: nowrap; scrollbar-width: none; }
+        .cat-item { padding: 10px 22px; background: white; border-radius: 25px; font-size: 13px; font-weight: bold; cursor: pointer; color: #666; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.3s; }
+        .cat-item.active { background: var(--p-green); color: white; }
+
+        .container { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 11px; font-weight: bold; color: #999; margin-bottom: 5px; text-transform: uppercase; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #eee; border-radius: 8px; font-size: 14px; outline: none; background: #fafafa; box-sizing: border-box; }
+        
+        .flex-box { display: flex; gap: 10px; }
+        .flex-box div { flex: 1; }
+
+        .bulk-settings { background: #fff5f0; border: 1.5px dashed var(--p-orange); padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        .btn-add-rank { width: 100%; padding: 10px; background: #f0fdf4; color: var(--p-green); border: 2px dashed var(--p-green); border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .btn-publish { width: 100%; padding: 15px; background: #000; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+
+        .match-card {
+            background: #fff; border-radius: 12px; padding: 15px; margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; justify-content: space-between;
+            align-items: center; cursor: pointer; border: 2px solid transparent; transition: 0.2s;
+            position: relative; user-select: none;
+        }
+        .match-card.selected { border-color: var(--p-orange); background: #fff9f5; }
+        
+        .filter-section { background: white; padding: 10px; border-radius: 10px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+
+        #floatingSendBtn {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--p-orange); color: white; padding: 15px 40px;
+            border-radius: 50px; font-weight: 800; border: none;
+            box-shadow: 0 10px 20px rgba(255, 77, 0, 0.3); display: none; z-index: 1000;
+        }
+
+        /* MODAL STYLE */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 20px; width: 85%; max-width: 380px; max-height: 80vh; overflow-y: auto; }
+        
+        .host-item { 
+            padding: 12px; border-bottom: 1px solid #eee; display: flex; 
+            justify-content: space-between; align-items: center; color: #333; 
+        }
+        .host-main { flex-grow: 1; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 13px; }
+        .del-acc-btn { color: #ccc; cursor: pointer; padding: 5px; transition: 0.2s; }
+        .del-acc-btn:hover { color: var(--red); }
+    </style>
+</head>
+<body>
+
+<div class="header">KL ESPORTS Admin</div>
+<div class="sub-header">Manage tournaments and participants</div>
+
+<div class="cat-scroll">
+    <div class="cat-item active" onclick="changeCat('BR PER KILL', this)">BR PER KILL</div>
+    <div class="cat-item" onclick="changeCat('BR SURVIVAL', this)">BR SURVIVAL</div>
+    <div class="cat-item" onclick="changeCat('CS HEADSHOT', this)">CS HEADSHOT</div>
+    <div class="cat-item" onclick="changeCat('CLASH SQUAD', this)">CLASH SQUAD</div>
+</div>
+
+<div class="filter-section">
+    <label style="color:#333; font-size: 12px;"><i class="fa fa-calendar"></i> Filter Date:</label>
+    <input type="date" id="matchFilterDate" onchange="loadMatches()" style="width: auto; padding: 5px;">
+</div>
+
+<div class="container">
+    <div class="flex-box">
+        <div class="form-group"><label>Category</label><input type="text" id="mCategory" value="BR PER KILL" readonly style="color:var(--p-green); font-weight:bold;"></div>
+        <div class="form-group">
+            <label>Team Type</label>
+            <select id="mTeamType" onchange="autoSetSlots()">
+                <option value="SOLO">SOLO</option>
+                <option value="DUO">DUO</option>
+                <option value="SQUAD">SQUAD</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label>Match Thumbnail</label>
+        <div class="upload-area" style="border: 2px dashed #ddd; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer; background: #f9f9f9;" onclick="document.getElementById('mImageFile').click()">
+            <span id="uploadText"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Image</span>
+            <input type="file" id="mImageFile" accept="image/*" style="display: none;" onchange="previewThumbnail(event)">
+            <img id="imagePreview" style="width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin-top: 10px; display: none;">
+        </div>
+        <input type="hidden" id="mThumb"> 
+    </div>
+
+    <div class="flex-box">
+        <div class="form-group"><label>Map</label><input type="text" id="mMap" value="BERMUDA"></div>
+        <div class="form-group"><label>Start Date & Time</label><input type="datetime-local" id="mTime"></div>
+    </div>
+
+    <div class="bulk-settings">
+        <label style="color:var(--p-orange); margin-bottom: 10px;">Bulk Match Settings</label>
+        <div class="flex-box">
+            <div class="form-group"><label>Number of Matches</label><input type="number" id="mCount" value="1" min="1"></div>
+            <div class="form-group"><label>Gap (Minutes)</label><input type="number" id="mGap" value="10" min="1"></div>
+        </div>
+    </div>
+
+    <div class="flex-box">
+        <div class="form-group"><label>Entry Fee</label><input type="number" id="mEntry" value="0"></div>
+        <div class="form-group"><label>Total Prize</label><input type="number" id="mPrize" value="0"></div>
+    </div>
+
+    <div class="form-group">
+        <label>Max Slots</label>
+        <input type="number" id="mMax" value="48">
+    </div>
+
+    <div class="form-group">
+        <label>Prize Distribution</label>
+        <div id="prizeContainer"><div class="prize-row" style="display: flex; gap: 8px; margin-bottom: 10px;"><input type="text" class="rank-label" placeholder="Booyah" style="flex:1;"><input type="text" class="rank-value" placeholder="100" style="flex:1;"></div></div>
+        <button class="btn-add-rank" onclick="addRankField()">+ Add More Info</button>
+    </div>
+    
+    <button class="btn-publish" id="publishBtn" onclick="publishMatch()">PUBLISH MATCH(ES)</button>
+</div>
+
+<div class="section-title" style="margin: 20px 5px 10px 5px; font-weight: 800; color: #333; font-size: 18px;">Active Matches</div>
+<div id="adminMatchList"></div>
+
+<button id="floatingSendBtn" onclick="openHostModal()">ASSIGN TO HOST (0)</button>
+
+<div id="hostModal" class="modal">
+    <div class="modal-content">
+        <h3 style="margin-top:0; color:var(--p-orange); font-size:16px;">Select Hoster to Assign</h3>
+        <p style="font-size: 10px; color: #999; margin-bottom: 10px;">*Hosts with active matches are hidden</p>
+        <div id="hostList">Loading active hosts...</div>
+        <button onclick="closeModal()" style="width:100%; margin-top:15px; border:none; padding:12px; background:#eee; border-radius:10px; font-weight:bold; cursor:pointer;">CANCEL</button>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBrHcONT6y0he3fzrtRGqdQMZfIMpGxcNo",
+        authDomain: "kl-esports.firebaseapp.com",
+        databaseURL: "https://kl-esports-default-rtdb.firebaseio.com",
+        projectId: "kl-esports",
+        storageBucket: "kl-esports.appspot.com",
+        messagingSenderId: "440301376580",
+        appId: "1:440301376580:web:fb0b8ae0df3fe096bd1811"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let currentCat = "BR PER KILL";
+    let selectedMatches = [];
+
+    document.getElementById('matchFilterDate').valueAsDate = new Date();
+
+    function autoSetSlots() {
+        const type = document.getElementById('mTeamType').value;
+        const maxField = document.getElementById('mMax');
+        if(type === "SOLO") maxField.value = 48;
+        else if(type === "DUO") maxField.value = 24;
+        else maxField.value = 12;
+    }
+
+    function previewThumbnail(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('imagePreview').style.display = 'block';
+                document.getElementById('uploadText').style.display = 'none';
+                document.getElementById('mThumb').value = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function changeCat(cat, el) {
+        currentCat = cat;
+        selectedMatches = [];
+        updateFloatingBtn();
+        document.getElementById('mCategory').value = cat;
+        document.querySelectorAll('.cat-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+        loadMatches();
+    }
+
+    function addRankField() {
+        const div = document.createElement('div');
+        div.className = 'prize-row';
+        div.style.display = "flex"; div.style.gap = "8px"; div.style.marginBottom = "10px";
+        div.innerHTML = `<input type="text" class="rank-label" placeholder="Label" style="flex:1;"><input type="text" class="rank-value" placeholder="Value" style="flex:1;">`;
+        document.getElementById('prizeContainer').appendChild(div);
+    }
+
+    async function publishMatch() {
+        const btn = document.getElementById('publishBtn');
+        const startTimeStr = document.getElementById('mTime').value;
+        const matchCount = parseInt(document.getElementById('mCount').value) || 1;
+        const matchGap = parseInt(document.getElementById('mGap').value) || 10;
+
+        if(!startTimeStr) return alert("Select Start Time!");
+        
+        btn.innerText = "Publishing Matches...";
+        btn.disabled = true;
+
+        let prizeArray = [];
+        document.querySelectorAll('.rank-label').forEach((lbl, i) => { 
+            const val = document.querySelectorAll('.rank-value')[i].value;
+            if(lbl.value && val) prizeArray.push(`${lbl.value}:${val}`); 
+        });
+
+        let baseTime = new Date(startTimeStr);
+
+        for(let i=0; i < matchCount; i++) {
+            let matchTime = new Date(baseTime.getTime() + (i * matchGap * 60000));
+            const data = {
+                category: currentCat,
+                thumbnail: document.getElementById('mThumb').value || "",
+                teamType: document.getElementById('mTeamType').value,
+                map: document.getElementById('mMap').value,
+                time: matchTime.toISOString(),
+                entry: parseInt(document.getElementById('mEntry').value) || 0,
+                prize: parseInt(document.getElementById('mPrize').value) || 0,
+                max: parseInt(document.getElementById('mMax').value),
+                joined: 0,
+                prizeDist: prizeArray.join(','),
+                status: "Upcoming",
+                assignedHost: ""
+            };
+            await db.ref('matches').push(data);
+        }
+
+        alert(matchCount + " Match(es) Published!");
+        location.reload();
+    }
+
+    function loadMatches() {
+        const filterDate = document.getElementById('matchFilterDate').value;
+        const listDiv = document.getElementById('adminMatchList');
+        
+        db.ref('matches').orderByChild('category').equalTo(currentCat).on('value', snap => {
+            listDiv.innerHTML = "";
+            let count = 0;
+            snap.forEach(child => {
+                const m = child.val();
+                if(m.time.startsWith(filterDate)) {
+                    count++;
+                    const card = document.createElement('div');
+                    card.className = `match-card ${selectedMatches.includes(child.key) ? 'selected' : ''}`;
+                    card.id = child.key;
+
+                    let timer;
+                    card.onmousedown = card.ontouchstart = (e) => {
+                        timer = setTimeout(() => toggleSelect(card, child.key), 600);
+                    };
+                    card.onmouseup = card.ontouchend = () => clearTimeout(timer);
+                    
+                    card.onclick = () => {
+                        if(selectedMatches.length > 0) toggleSelect(card, child.key);
+                        else window.location.href = `card.html?id=${child.key}`;
+                    };
+                    
+                    card.innerHTML = `
+                        <div class="m-info">
+                            <h3>${m.teamType} - ${m.map}</h3>
+                            <p>${new Date(m.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                            <span style="font-size:10px; color:var(--p-green);">${m.assignedHost ? 'Status: Assigned' : 'Status: Free'}</span>
+                        </div>
+                        <div class="m-status-side">
+                            <button style="color:red; background:none; border:none; padding:10px;" onclick="deleteMatch(event, '${child.key}')"><i class="fa-solid fa-trash"></i></button>
+                        </div>`;
+                    listDiv.appendChild(card);
+                }
+            });
+            if(count === 0) listDiv.innerHTML = "<p style='text-align:center; color:#888; padding:20px;'>No matches found.</p>";
+        });
+    }
+
+    function toggleSelect(el, key) {
+        if(selectedMatches.includes(key)) {
+            selectedMatches = selectedMatches.filter(id => id !== key);
+            el.classList.remove('selected');
+        } else {
+            selectedMatches.push(key);
+            el.classList.add('selected');
+        }
+        updateFloatingBtn();
+    }
+
+    function updateFloatingBtn() {
+        const btn = document.getElementById('floatingSendBtn');
+        btn.style.display = selectedMatches.length > 0 ? "block" : "none";
+        btn.innerText = `ASSIGN TO HOST (${selectedMatches.length})`;
+    }
+
+    async function openHostModal() {
+        document.getElementById('hostModal').style.display = 'flex';
+        const hl = document.getElementById('hostList'); hl.innerHTML = "Checking active hosts...";
+        
+        // 1. Get all matches to see who is currently hosting
+        const matchSnap = await db.ref('matches').once('value');
+        let activeHostIds = [];
+        matchSnap.forEach(m => { if(m.val().assignedHost) activeHostIds.push(m.val().assignedHost); });
+
+        // 2. Load all hosts and filter out active ones
+        db.ref('users').orderByChild('role').equalTo('hoster').once('value', snap => {
+            hl.innerHTML = "";
+            let foundCount = 0;
+            snap.forEach(hSnap => {
+                const hKey = hSnap.key;
+                const h = hSnap.val();
+                
+                // 🔥 HIDE HOST IF HE HAS MATCHES
+                if(!activeHostIds.includes(hKey)) {
+                    foundCount++;
+                    const div = document.createElement('div');
+                    div.className = 'host-item';
+                    div.innerHTML = `
+                        <div class="host-main" onclick="assignMatches('${hKey}', '${h.gameName || h.email}')">
+                            <i class="fa-solid fa-user-circle" style="font-size:20px; color:#555;"></i> 
+                            ${h.gameName || h.email}
+                        </div>
+                        <i class="fa-solid fa-trash-can del-acc-btn" onclick="deleteHostAccount('${hKey}', '${h.email}')"></i>`;
+                    hl.appendChild(div);
+                }
+            });
+            if(foundCount === 0) hl.innerHTML = "<p style='color:#888; text-align:center; font-size:12px;'>All hosts are busy or no hosts available.</p>";
+        });
+    }
+
+    // 🔥 DELETE HOST ACCOUNT
+    async function deleteHostAccount(hostKey, email) {
+        if(!confirm(`PERMANENTLY DELETE ${email}'s account?\nThis cannot be undone.`)) return;
+        await db.ref('users/' + hostKey).remove();
+        alert("Account Deleted!");
+        openHostModal(); // Refresh modal list
+    }
+
+    async function assignMatches(hostId, hostName) {
+        if(!confirm(`Assign ${selectedMatches.length} match(es) to ${hostName}?`)) return;
+        for (let matchId of selectedMatches) {
+            await db.ref('matches/' + matchId).update({ assignedHost: hostId });
+        }
+        alert("Matches assigned successfully!");
+        selectedMatches = [];
+        closeModal();
+        updateFloatingBtn();
+    }
+
+    function closeModal() { document.getElementById('hostModal').style.display = 'none'; }
+    function deleteMatch(e, key) { e.stopPropagation(); if(confirm("Delete?")) db.ref('matches/' + key).remove(); }
+    loadMatches();
+</script>
+</body>
+</html>
