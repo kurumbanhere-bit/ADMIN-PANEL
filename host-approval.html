@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Approval - Admin Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="host-approval.css">
+</head>
+<body>
+
+<div class="header">
+    <i class="fa-solid fa-arrow-left back-btn" onclick="location.href='index.html'"></i>
+    <h1>Host Approval Requests</h1>
+</div>
+
+<!-- Pending Requests Section -->
+<div id="noRequestBox">
+    <i class="fa-solid fa-envelope-open-text"></i>
+    <p>No Pending Requests</p>
+</div>
+<div id="requestList"></div>
+
+<hr style="margin: 40px 20px; border: 0; border-top: 1px dashed #555;">
+
+<!-- Approved Section Button -->
+<div style="padding: 0 20px; margin-bottom: 30px;">
+    <button id="toggleApprovedBtn" class="approved-toggle-btn">
+        <i class="fa-solid fa-users-check"></i> VIEW APPROVED HOSTS
+    </button>
+    
+    <div id="approvedContainer" style="display: none; margin-top: 20px;">
+        <h2 style="color: #2ecc71; margin-bottom: 15px;">Approved Hosts</h2>
+        <div id="approvedList"></div>
+    </div>
+</div>
+
+<script src="host-approval.js"></script>
+</body>
+</html>

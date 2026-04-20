@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Match | KL ESPORTS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="add-match.css">
+    <script>
+        const session = localStorage.getItem("adminSession");
+        if (!session || JSON.parse(session).email !== "kurumbanhere@gmail.com") {
+            window.location.replace("index.html");
+        }
+    </script>
+</head>
+<body>
+
+<div class="header-nav">
+    <button class="back-btn" onclick="location.href='dashboard.html'"><i class="fa-solid fa-arrow-left"></i></button>
+    <div class="title">ADD NEW MATCH</div>
+</div>
+
+<div class="cat-scroll">
+    <div class="cat-item active" onclick="changeCat('BR PER KILL', this)">BR PER KILL</div>
+    <div class="cat-item" onclick="changeCat('BR SURVIVAL', this)">BR SURVIVAL</div>
+    <div class="cat-item" onclick="changeCat('CS HEADSHOT', this)">CS HEADSHOT</div>
+    <div class="cat-item" onclick="changeCat('CLASH SQUAD', this)">CLASH SQUAD</div>
+    <div class="cat-item" onclick="changeCat('LONE WOLF', this)">LONE WOLF</div>
+    <div class="cat-item" onclick="changeCat('LW HEADSHOT', this)">LW HEADSHOT</div>
+    <div class="cat-item" onclick="changeCat('LOSE TO WIN', this)">LOSE TO WIN</div>
+    <div class="cat-item" onclick="changeCat('SUNDAY SPECIAL', this)">SUNDAY SPECIAL</div>
+</div>
+
+<div class="main-container">
+    <div class="form-card">
+        <div class="flex-box">
+            <div class="form-group"><label>Category</label><input type="text" id="mCategory" value="BR PER KILL" readonly class="highlight-input"></div>
+            <div class="form-group">
+                <label>Team Type</label>
+                <select id="mTeamType" onchange="autoSetSlots()">
+                    <option value="SOLO">SOLO</option>
+                    <option value="DUO">DUO</option>
+                    <option value="SQUAD">SQUAD</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Thumbnail Link</label>
+            <div class="upload-box" style="padding: 12px; cursor: default; border: 2px dashed #ff4d4d;">
+                <input type="text" id="mImageFile" placeholder="Paste Image URL (Link) here..." 
+                       oninput="previewThumbnail()" 
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; outline: none;">
+                
+                <span id="uploadText"><i class="fa-solid fa-link"></i> Link Preview will appear here</span>
+                <img id="imagePreview" style="display:none; width:100%; border-radius:10px; margin-top: 10px; border: 1px solid #eee;">
+            </div>
+        </div>
+
+        <div class="flex-box">
+            <div class="form-group"><label>Map</label><input type="text" id="mMap" value="BERMUDA"></div>
+            <div class="form-group"><label>Start Date & Time</label><input type="datetime-local" id="mTime"></div>
+        </div>
+
+        <div class="bulk-box" style="background: #fff5f5; padding: 10px; border-radius: 8px; border: 1px dashed #ff4d4d; margin-bottom: 15px;">
+            <label style="color: #ff4d4d; font-weight: bold; font-size: 12px;">BULK MATCH MAKER</label>
+            <div class="flex-box" style="display: flex; gap: 10px; margin-top: 5px;">
+                <div class="form-group" style="flex: 1;"><label>Match Count</label><input type="number" id="mCount" value="1"></div>
+                <div class="form-group" style="flex: 1;"><label>Gap (Min)</label><input type="number" id="mGap" value="15"></div>
+            </div>
+        </div>
+
+        <div class="flex-box">
+            <div class="form-group"><label>Entry Fee</label><input type="number" id="mEntry" value="0"></div>
+            <div class="form-group"><label>Total Prize</label><input type="number" id="mPrize" value="0"></div>
+        </div>
+
+        <div class="form-group"><label>Max Slots</label><input type="number" id="mMax" value="48"></div>
+
+        <div class="form-group">
+            <label style="color: #ff4d4d;"><i class="fa-solid fa-scroll"></i> Match Rules (Comma Separated)</label>
+            <textarea id="mRules" placeholder="1. No Hacks, 2. No Teaming, 3. Per Kill 10 Points" 
+                style="width: 100%; height: 80px; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-family: sans-serif; box-sizing: border-box; margin-top: 5px; outline: none; resize: vertical;"></textarea>
+            <small style="color: #888; font-size: 10px;">Rules comma (,) ittu ezhuthuka. Automatic aayi list aayi vannolum.</small>
+        </div>
+
+        <div class="form-group">
+            <label>Prize Info</label>
+            <div id="prizeContainer">
+                <div class="prize-row" style="display: flex; gap: 5px; margin-bottom: 5px;">
+                    <input type="text" class="rank-label" placeholder="Booyah" style="flex:1;"><input type="text" class="rank-value" placeholder="₹100" style="flex:1;">
+                </div>
+            </div>
+            <button class="add-row-btn" onclick="addRankField()" style="width:100%; padding:8px;">+ Add Rank Row</button>
+        </div>
+        
+        <button class="publish-btn" id="publishBtn" onclick="publishMatch()">PUBLISH MATCH(ES)</button>
+    </div>
+
+    <div class="section-head" style="margin-top: 25px; font-weight: bold; color: #333;">ACTIVE MATCHES</div>
+    <div id="adminMatchList" style="margin-top: 10px;"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="add-match.js"></script>
+</body>
+</html>

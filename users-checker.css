@@ -1,0 +1,131 @@
+:root {
+    --primary-red: #ff4d4d;
+    --green: #2ecc71;
+    --bg-dark: #121212;
+    --card-bg: #1e1e1e;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: white;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+.search-container {
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.total-badge {
+    background: var(--primary-red);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+}
+
+.search-box {
+    display: flex;
+    gap: 10px;
+}
+
+.search-select, .search-input {
+    background: #2d2d2d;
+    border: 1px solid #444;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.search-input { flex-grow: 1; }
+
+.user-card {
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid var(--primary-red);
+}
+
+.gn-badge {
+    background: #333;
+    padding: 2px 8px;
+    font-size: 11px;
+    border-radius: 4px;
+    color: #f1c40f;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #252525;
+    padding: 20px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 400px;
+}
+
+.wallet-input {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0 15px 0;
+    background: #111;
+    border: 1px solid #444;
+    color: white;
+    box-sizing: border-box;
+}
+
+.update-btn {
+    width: 100%;
+    background: var(--green);
+    border: none;
+    padding: 12px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.pop-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: #333;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: white;
+    cursor: pointer;
+}
+
+.close-btn {
+    width: 100%;
+    margin-top: 10px;
+    background: #444;
+    border: none;
+    padding: 10px;
+    color: white;
+    cursor: pointer;
+}
