@@ -89,3 +89,4 @@ function loadData() {
 
 // Initial load
 loadData();
+
