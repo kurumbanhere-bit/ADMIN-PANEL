@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Winners Management - KL ESPORTS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #e63946;
+            --success: #28a745;
+            --dark: #1a1a1a;
+            --light: #f4f4f4;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--light); margin: 0; }
+        .admin-header { background: var(--dark); color: white; padding: 20px; text-align: center; font-weight: bold; }
+        
+        .cat-nav { display: flex; overflow-x: auto; background: white; padding: 10px; gap: 10px; border-bottom: 1px solid #ddd; }
+        .cat-btn { padding: 8px 15px; border: 1px solid #ddd; border-radius: 20px; background: #fff; cursor: pointer; font-size: 12px; white-space: nowrap; }
+        .cat-btn.active { background: var(--dark); color: white; }
+
+        .status-bar { display: flex; padding: 15px; background: white; gap: 10px; }
+        .status-btn { flex: 1; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; background: #eee; }
+        .status-btn.active { background: var(--primary); color: white; }
+        #btnWin.active { background: var(--success) !important; }
+
+        #adminMatchList { padding: 10px; }
+        .match-card {
+            background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px;
+            cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex; justify-content: space-between; align-items: center;
+            border-left: 5px solid transparent;
+        }
+        .match-info strong { display: block; font-size: 1rem; color: #333; }
+        .status-tag { font-size: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="admin-header">KL ESPORTS ADMIN</div>
+
+    <div class="cat-nav">
+        <button class="cat-btn active" onclick="filterCat('BR PER KILL', this)">BR PER KILL</button>
+        <button class="cat-btn" onclick="filterCat('BR SURVIVAL', this)">BR SURVIVAL</button>
+        <button class="cat-btn" onclick="filterCat('CS HEADSHOT', this)">CS HEADSHOT</button>
+        <button class="cat-btn" onclick="filterCat('CLASH SQUAD', this)">CLASH SQUAD</button>
+        <button class="cat-btn" onclick="filterCat('LONE WOLF', this)">LONE WOLF</button>
+        <button class="cat-btn" onclick="filterCat('LW HEADSHOT', this)">LW HEADSHOT</button>
+        <button class="cat-btn" onclick="filterCat('LOSE TO WIN', this)">LOSE TO WIN</button>
+        <button class="cat-btn" onclick="filterCat('SUNDAY SPECIAL', this)">SUNDAY SPECIAL</button>
+    </div>
+
+    <input type="hidden" id="mCategory" value="BR PER KILL">
+    <input type="hidden" id="currentView" value="ended">
+
+    <div class="status-bar">
+        <button class="status-btn active" id="btnEnded" onclick="showStatus('ended', this)">ENDED</button>
+        <button class="status-btn" id="btnWin" onclick="showStatus('win', this)">WIN ADDED</button>
+    </div>
+
+    <div id="adminMatchList"></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAo9KNsWnq2AgoCGzPuCsg7YCbuw8-Apuo",
+            authDomain: "studio-4988500581-b9772.firebaseapp.com",
+            databaseURL: "https://studio-4988500581-b9772-default-rtdb.firebaseio.com",
+            projectId: "studio-4988500581-b9772",
+            storageBucket: "studio-4988500581-b9772.firebasestorage.app",
+            messagingSenderId: "773461302160",
+            appId: "1:773461302160:web:13deb67b24b267ac0b7115"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function filterCat(cat, el) {
+            document.getElementById('mCategory').value = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
+            el.classList.add('active');
+            loadActiveMatches();
+        }
+
+        function showStatus(view, el) {
+            document.getElementById('currentView').value = view;
+            document.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
+            el.classList.add('active');
+            loadActiveMatches();
+        }
+
+        function loadActiveMatches() {
+            const selectedCat = document.getElementById('mCategory').value;
+            const currentView = document.getElementById('currentView').value; 
+            const list = document.getElementById('adminMatchList');
+
+            db.ref('matches').on('value', (snap) => {
+                list.innerHTML = "";
+                let found = false;
+
+                snap.forEach((child) => {
+                    const m = child.val();
+                    const mId = child.key;
+
+                    if (m.category !== selectedCat) return;
+
+                    // Case-insensitive check (Small letter aayalum capital aayalum work aakum)
+                    const isWinAdded = (m.status && m.status.toLowerCase() === "completed");
+
+                    if (currentView === 'win') {
+                        if (!isWinAdded) return; 
+                    } else {
+                        if (isWinAdded) return; 
+                    }
+
+                    found = true;
+                    const timeStr = m.time ? new Date(m.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "N/A";
+
+                    list.innerHTML += `
+                        <div onclick="window.location.href='winnings-sender-card.html?id=${mId}'" 
+                             class="match-card" 
+                             style="border-left-color: ${isWinAdded ? '#28a745' : '#e63946'}">
+                            <div class="match-info">
+                                <strong>${m.teamType} - ${m.map || ''}</strong>
+                                <small><i class="far fa-clock"></i> ${timeStr}</small>
+                            </div>
+                            <div class="status-tag" style="color:${isWinAdded ? '#28a745' : '#e63946'}">
+                                ${isWinAdded ? 'WIN ADDED ✅' : 'PENDING ⏳'}
+                            </div>
+                        </div>`;
+                });
+
+                if (!found) {
+                    list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">Matches onnum illa!</div>`;
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadActiveMatches);
+    </script>
+</body>
+</html>

@@ -1,0 +1,221 @@
+/* ⚡ KL ESPORTS - UPDATED CARD STYLES */
+
+:root { 
+    --red: #e63946; 
+    --bg: #fdfdfd; 
+    --white: #ffffff; 
+    --text-dark: #1d3557; 
+    --light-red: #ffccd5;
+    --green: #28a745; /* Success Green */
+}
+
+body { 
+    font-family: 'Segoe UI', sans-serif; 
+    background: var(--bg); 
+    margin: 0; 
+    padding: 15px; 
+    padding-bottom: 50px; 
+    color: var(--text-dark);
+}
+
+/* Navigation */
+.top-nav { 
+    display: flex; 
+    align-items: center; 
+    padding: 10px 0; 
+    gap: 15px; 
+}
+
+.back-btn { 
+    font-size: 20px; 
+    color: var(--red); 
+    cursor: pointer; 
+}
+
+#matchTitle {
+    margin: 0; 
+    text-transform: uppercase; 
+    color: var(--text-dark);
+}
+
+/* Main Card */
+.card { 
+    background: var(--white); 
+    border-radius: 15px; 
+    padding: 20px; 
+    margin-bottom: 15px; 
+    box-shadow: 0 4px 15px rgba(230, 57, 70, 0.1); 
+    border: 1px solid #f1f1f1;
+}
+
+/* Status Controls */
+.status-container { 
+    display: flex; 
+    justify-content: space-around; 
+    margin-bottom: 25px; 
+    background: #fff5f5; 
+    padding: 10px; 
+    border-radius: 12px; 
+}
+
+.status-item { 
+    text-align: center; 
+    opacity: 0.4; 
+    transition: 0.3s; 
+    cursor: pointer; 
+    color: #457b9d; 
+    flex: 1; 
+}
+
+.status-item.active { 
+    opacity: 1; 
+    color: var(--red); 
+}
+
+.status-item i { font-size: 20px; margin-bottom: 4px; display: block; }
+.status-item span { font-size: 10px; font-weight: bold; text-transform: uppercase; }
+
+/* Info Boxes */
+.info-grid { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 15px; 
+    margin-bottom: 25px; 
+}
+
+.info-box { 
+    background: #fff; 
+    padding: 12px; 
+    border-radius: 10px; 
+    border: 1px solid var(--light-red); 
+}
+
+.info-box label { 
+    font-size: 10px; 
+    color: #666; 
+    display: block; 
+    margin-bottom: 4px; 
+    text-transform: uppercase; 
+    font-weight: bold; 
+}
+
+.info-box span { font-size: 15px; font-weight: 800; color: var(--red); }
+
+/* Room Titles & Inputs */
+.room-section-title { 
+    font-size: 12px; 
+    font-weight: 800; 
+    color: var(--text-dark); 
+    margin-bottom: 15px; 
+    text-transform: uppercase; 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+}
+
+.room-section-title i { color: var(--red); }
+
+.input-box { margin-bottom: 18px; }
+.input-box label { font-size: 11px; color: #64748b; display: block; margin-bottom: 8px; font-weight: 600; }
+
+.input-box input { 
+    width: 100%; 
+    padding: 14px; 
+    border: 2px solid #f1f1f1; 
+    border-radius: 12px; 
+    font-size: 15px; 
+    font-weight: 600; 
+    box-sizing: border-box; 
+    outline: none; 
+    transition: 0.3s; 
+}
+
+.input-box input:focus { border-color: var(--red); }
+
+.btn-update { 
+    width: 100%; 
+    padding: 16px; 
+    background: var(--red); 
+    color: white; 
+    border: none; 
+    border-radius: 12px; 
+    font-weight: 800; 
+    cursor: pointer; 
+    font-size: 14px; 
+    text-transform: uppercase; 
+    box-shadow: 0 4px 10px rgba(230, 57, 70, 0.3);
+}
+
+/* --- UPDATED PLAYER CARD WITH TICK SYSTEM --- */
+
+.player-card { 
+    background: white; 
+    padding: 15px; 
+    border-radius: 12px; 
+    margin-bottom: 10px; 
+    border-left: 4px solid var(--red);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: 0.2s ease-in-out;
+    border: 1px solid #eee;
+    border-left: 4px solid var(--red);
+}
+
+.player-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+/* Tick Circle Design */
+.tick-circle {
+    width: 22px;
+    height: 22px;
+    border: 2px solid #ddd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    transition: 0.3s;
+    flex-shrink: 0;
+}
+
+.tick-circle i {
+    display: none; /* Hidden by default */
+    color: white;
+    font-size: 11px;
+}
+
+/* Active/Selected State Logic */
+.player-card.selected {
+    background-color: #f0fff4; /* Light green bg */
+    border-color: var(--green);
+}
+
+.player-card.selected .tick-circle {
+    background-color: var(--green);
+    border-color: var(--green);
+}
+
+.player-card.selected .tick-circle i {
+    display: block; /* Show tick on select */
+}
+
+/* Player Texts */
+.player-name { font-weight: 800; font-size: 14px; color: var(--text-dark); }
+.team-tag { font-size: 9px; background: var(--light-red); padding: 3px 8px; border-radius: 5px; font-weight: 900; color: var(--red); }
+.member-name { font-size: 11px; font-weight: 700; color: #555; background: #fff; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--light-red); }
+
+/* Squad Info Styling */
+.squad-info {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #eee;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}

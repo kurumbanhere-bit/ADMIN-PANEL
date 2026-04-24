@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control - Host Management</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    
+    <style>
+        :root { 
+            --primary: #2ecc71; 
+            --danger: #e74c3c; 
+            --bg: #0d0d0d; 
+            --card: #1a1a1a; 
+            --text: #ffffff; 
+        }
+
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: var(--bg); 
+            color: var(--text); 
+            margin: 0; 
+            padding-bottom: 50px;
+        }
+
+        /* Header Styles */
+        .header { 
+            background: #000; 
+            padding: 20px; 
+            text-align: center; 
+            border-bottom: 2px solid var(--primary); 
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header h1 { font-size: 20px; margin: 0; letter-spacing: 1.5px; color: var(--primary); }
+
+        /* Manual Entry Form */
+        .admin-form { 
+            background: var(--card); 
+            padding: 20px; 
+            margin: 20px; 
+            border-radius: 12px; 
+            border: 1px solid #333; 
+        }
+        .admin-form h2 { font-size: 16px; margin-top: 0; margin-bottom: 15px; color: #bbb; }
+        .admin-form input { 
+            width: 100%; 
+            padding: 12px; 
+            margin-bottom: 12px; 
+            border-radius: 8px; 
+            border: 1px solid #444; 
+            background: #252525; 
+            color: #fff; 
+            box-sizing: border-box; 
+        }
+        .add-btn { 
+            background: var(--primary); 
+            color: #000; 
+            border: none; 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.3s;
+        }
+
+        /* Request & List Cards */
+        .section-title { margin: 25px 20px 10px; font-size: 14px; font-weight: bold; color: #666; text-transform: uppercase; }
+        
+        .card { 
+            background: var(--card); 
+            margin: 10px 20px; 
+            padding: 15px; 
+            border-radius: 10px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border: 1px solid #222;
+        }
+        .info h3 { margin: 0; font-size: 15px; }
+        .info p { margin: 5px 0 0; font-size: 13px; color: var(--primary); font-family: monospace; }
+        
+        .actions { display: flex; gap: 20px; }
+        .fa-check { color: var(--primary); font-size: 22px; cursor: pointer; }
+        .fa-trash { color: var(--danger); font-size: 18px; cursor: pointer; }
+
+        #noRequestBox { text-align: center; padding: 40px; color: #444; font-size: 14px; }
+
+        /* View Toggle */
+        .toggle-btn { 
+            display: block;
+            width: 90%;
+            margin: 20px auto;
+            background: #222;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>ADMIN PANEL</h1>
+</div>
+
+<div class="admin-form">
+    <h2><i class="fa-solid fa-plus-circle"></i> Create Host Account</h2>
+    <input type="text" id="manualUser" placeholder="Enter Username">
+    <input type="text" id="manualPass" placeholder="Enter Password">
+    <button class="add-btn" onclick="addHostManually()">ADD AUTHORIZED HOST</button>
+</div>
+
+<div class="section-title">Pending Requests</div>
+<div id="noRequestBox">No pending approval requests.</div>
+<div id="requestList"></div>
+
+<button class="toggle-btn" onclick="toggleApproved()">
+    <i class="fa-solid fa-list-check"></i> VIEW APPROVED HOSTS
+</button>
+
+<div id="approvedSection" style="display: none;">
+    <div class="section-title" style="color: var(--primary);">Approved & Active Hosts</div>
+    <div id="approvedList"></div>
+</div>
+
+<script>
+// --- FIREBASE CONFIG ---
+const firebaseConfig = {
+  apiKey: "AIzaSyAo9KNsWnq2AgoCGzPuCsg7YCbuw8-Apuo",
+  authDomain: "studio-4988500581-b9772.firebaseapp.com",
+  databaseURL: "https://studio-4988500581-b9772-default-rtdb.firebaseio.com",
+  projectId: "studio-4988500581-b9772",
+  storageBucket: "studio-4988500581-b9772.firebasestorage.app",
+  messagingSenderId: "773461302160",
+  appId: "1:773461302160:web:13deb67b24b267ac0b7115"
+};
+
+// Initialize
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 1. ADD HOST MANUALLY
+function addHostManually() {
+    const user = document.getElementById('manualUser').value.trim();
+    const pass = document.getElementById('manualPass').value.trim();
+    if(user && pass) {
+        db.ref('approved_hosts').push({
+            username: user,
+            password: pass
+        }).then(() => {
+            alert("Host Successfully Added!");
+            document.getElementById('manualUser').value = "";
+            document.getElementById('manualPass').value = "";
+        });
+    } else { alert("Please enter both fields!"); }
+}
+
+// 2. LOAD LISTS
+function loadData() {
+    // Pending Requests
+    db.ref('host_requests').on('value', (snap) => {
+        const list = document.getElementById('requestList');
+        list.innerHTML = "";
+        let count = 0;
+        snap.forEach(child => {
+            const data = child.val();
+            if(data.status === "pending") {
+                count++;
+                list.innerHTML += `
+                    <div class="card">
+                        <div class="info">
+                            <h3>${data.email}</h3>
+                            <p>PASS: ${data.password}</p>
+                        </div>
+                        <div class="actions">
+                            <i class="fa-solid fa-check" onclick="approve('${child.key}','${data.email}','${data.password}')"></i>
+                            <i class="fa-solid fa-trash" onclick="reject('${child.key}')"></i>
+                        </div>
+                    </div>`;
+            }
+        });
+        document.getElementById('noRequestBox').style.display = count > 0 ? "none" : "block";
+    });
+
+    // Approved Hosts
+    db.ref('approved_hosts').on('value', (snap) => {
+        const appList = document.getElementById('approvedList');
+        appList.innerHTML = "";
+        snap.forEach(child => {
+            const data = child.val();
+            appList.innerHTML += `
+                <div class="card">
+                    <div class="info">
+                        <h3>${data.username}</h3>
+                        <p>PASS: ${data.password}</p>
+                    </div>
+                    <div class="actions">
+                        <i class="fa-solid fa-trash" style="color:#e74c3c" onclick="removeHost('${child.key}')"></i>
+                    </div>
+                </div>`;
+        });
+    });
+}
+
+// 3. ACTION HANDLERS
+function approve(id, user, pass) {
+    db.ref('host_requests/' + id).update({ status: 'approved' });
+    db.ref('approved_hosts').push({ username: user, password: pass });
+}
+
+function reject(id) {
+    if(confirm("Reject this request?")) db.ref('host_requests/' + id).remove();
+}
+
+function removeHost(id) {
+    if(confirm("Block this host? Access will be removed.")) db.ref('approved_hosts/' + id).remove();
+}
+
+function toggleApproved() {
+    const sec = document.getElementById('approvedSection');
+    sec.style.display = (sec.style.display === "block") ? "none" : "block";
+}
+
+loadData();
+</script>
+
+</body>
+</html>

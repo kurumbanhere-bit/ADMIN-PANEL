@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - KL ESPORTS</title>
+    
+    <script>
+        const session = localStorage.getItem("adminSession");
+        if (!session) {
+            window.location.replace("index.html");
+        } else {
+            const userData = JSON.parse(session);
+            if (userData.email !== "kurumbanhere@gmail.com") {
+                window.location.replace("index.html");
+            }
+        }
+    </script>
+
+    <style>
+        body { visibility: hidden; opacity: 0; transition: opacity 0.4s ease; }
+    </style>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+<div class="top-bar">
+    <span class="admin-tag">ADMIN MODE</span>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+</div>
+
+<div class="header">
+    <div class="logo-area"><i class="fa-solid fa-crown"></i></div>
+    <h1>KL ESPORTS</h1>
+    <p>OFFICIAL MANAGEMENT CONSOLE</p>
+</div>
+
+<div class="card-container">
+    <div class="admin-card" onclick="goTo('add-match.html')">
+        <div class="info"><i class="fa-solid fa-square-plus"></i><h3>Add New Match</h3></div>
+        <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+    <div class="admin-card" onclick="goTo('add-missions.html')">
+        <div class="info"><i class="fa-solid fa-clipboard-list"></i><h3>Add Daily Missions</h3></div>
+        <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+    <div class="admin-card" onclick="goTo('winnings-sender.html')">
+        <div class="info"><i class="fa-solid fa-trophy"></i><h3>Winnings Sender</h3></div>
+        <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+    <div class="admin-card" onclick="goTo('users-checker.html')">
+        <div class="info"><i class="fa-solid fa-users-viewfinder"></i><h3>Users Checker</h3></div>
+        <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+    <div class="admin-card" onclick="goTo('banned-players.html')">
+        <div class="info"><i class="fa-solid fa-user-slash"></i><h3>Banned Players</h3></div>
+        <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+    <div class="admin-card" onclick="goTo('match-sender.html')">
+        <div class="info"><i class="fa-solid fa-paper-plane"></i><h3>Match Sender (Room ID)</h3></div>
+        <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+    <div class="admin-card alert-black" onclick="goTo('notification-sender.html')">
+        <div class="info"><i class="fa-solid fa-bullhorn"></i><h3>Notification Sender</h3></div>
+        <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+    <div class="admin-card" onclick="goTo('money-approval.html')">
+        <div class="info"><i class="fa-solid fa-hand-holding-dollar"></i><h3>Money Approval</h3></div>
+        <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+    <div class="admin-card host-mode" onclick="goTo('host.html')">
+        <div class="info"><i class="fa-solid fa-user-check"></i><h3>Hoster's Checker</h3></div>
+        <div class="arrow"><i class="fa-solid fa-chevron-right"></i></div>
+    </div>
+</div>
+
+<footer class="footer">
+    <p>© 2026 KERALA ESPORTS. Developed by JOSH.M.LYJU</p>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

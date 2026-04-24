@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Management - Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="card.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    
+    <style>
+        /* Player Card and Tick Styling */
+        .player-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 12px 15px;
+            margin: 8px 5px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tick-circle {
+            width: 22px;
+            height: 22px;
+            border: 2px solid #bbb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            transition: 0.3s;
+        }
+
+        .tick-circle i {
+            display: none;
+            color: white;
+            font-size: 12px;
+        }
+
+        /* Active State */
+        .player-card.selected {
+            border-color: #28a745;
+            background-color: #f0fff4;
+        }
+
+        .player-card.selected .tick-circle {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+
+        .player-card.selected .tick-circle i {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-nav">
+    <i class="fa-solid fa-arrow-left back-btn" onclick="location.href='add-match.html'"></i>
+    <h3 id="matchTitle">Admin Panel</h3>
+</div>
+
+<div class="card">
+    <div class="status-container">
+        <div class="status-item" id="stat-upcoming" onclick="updateStatus('upcoming')"><i class="fa-regular fa-clock"></i><span>Upcoming</span></div>
+        <div class="status-item" id="stat-started" onclick="updateStatus('started')"><i class="fa-regular fa-circle-play"></i><span>Started</span></div>
+      <div class="status-item" id="stat-ended" onclick="endMatch()">
+    <i class="fa-regular fa-circle-stop"></i>
+    <span>Ended</span>
+</div>
+
+    </div>
+
+    <div class="info-grid">
+        <div class="info-box"><label>Joined</label><span><span id="mJoined">0</span> / <span id="mMax">0</span></span></div>
+        <div class="info-box"><label>Prize</label><span>₹<span id="mPrize">0</span></span></div>
+    </div>
+
+    <div class="room-section-title"><i class="fa-solid fa-shield-halved"></i> Room Credentials</div>
+    <div class="input-box"><label>ROOM ID</label><input type="text" id="roomIdInput" placeholder="Enter ID here"></div>
+    <div class="input-box"><label>ROOM PASSWORD</label><input type="text" id="roomPassInput" placeholder="Enter Password here"></div>
+
+    <button class="btn-update" id="updateBtn" onclick="updateRoomDetails()">Update Room Details</button>
+</div>
+
+<div class="room-section-title" style="margin-left: 5px;"><i class="fa-solid fa-users"></i> Joined Players</div>
+
+<div id="participantsList" class="player-list-container">
+    
+    <div class="player-card" onclick="this.classList.toggle('selected')">
+        <span></span>
+        <div class="tick-circle">
+            <i class="fa-solid fa-check"></i>
+        </div>
+    </div>
+
+    <p style="text-align:center; font-size:12px; color:#999;">Loading participants...</p>
+</div>
+
+<script src="card.js"></script>
+</body>
+</html>
